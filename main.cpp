@@ -63,12 +63,14 @@ void err(istream_iterator<string> it, T a, Args... args) {
     err(++it, args...);
 }
 
-#include "agent\Position.cpp"
+#include "agent\Agent.hpp"
 #include "windows.h"
 
 using namespace std;
 
 int main() {
     //ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr);
+    static Agent ai;
+    ai.run();
     return 0;
 }

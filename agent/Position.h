@@ -3,6 +3,8 @@
 
 #include <bits/stdc++.h>
 
+#define POS_DEBUG
+
 using namespace std;
 
 // 棋子编号
@@ -72,24 +74,35 @@ constexpr uint_fast8_t pieceTypes[48] = {
 constexpr int_fast8_t simpleValues[48] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2,
-    5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2,
+    5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2
 };
+
+// 获得棋子类型
+inline uint_fast8_t PIECE_TYPE(uint_fast8_t pc) {
+    return pieceTypes[pc];
+}
+
+// 获得棋子简单分值
+inline uint_fast8_t SIMPLE_VALUE(uint_fast8_t pc) {
+    return simpleValues[pc];
+}
 
 /* SIDE_TAG()，红方设为 16，黑方设为 32。
  * 用 "SIDE_TAG() + i" 选择棋子的类型， "i" 从 0 到 15 依次是：
  * 帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
  * 例如"i"取"KNIGHT_FROM"到"KNIGHT_TO"，则表示依次检查两个马的位置
  */
-inline uint_fast8_t SIDE_TAG(uint_fast8_t side) {
-    return 16 + (side << 4);
-}
+inline uint_fast8_t SIDE_TAG(uint_fast8_t side) { return 16 + (side << 4); }
 
-inline uint_fast8_t OPP_SIDE_TAG(uint_fast8_t side) {
-  return 32 - (side << 4);
-}
+inline uint_fast8_t OPP_SIDE_TAG(uint_fast8_t side) { return 32 - (side << 4); }
 
-// 将FEN串中棋子标识转化为对应棋子类型 需toupper转化为大写
-uint_fast8_t charToPiece(char c);
+// 将FEN串中棋子标识转化为对应棋子类型 pt 需toupper转化为大写
+uint_fast8_t charToPt(char c);
+
+/* 将棋子转化为 FEN 字符 返回大写字符
+ * pt 为棋子类型
+ */
+char ptToChar(uint_fast8_t pt);
 
 struct Position {
     // 根据 x, y 返回序号 0 ~ 255
@@ -113,8 +126,11 @@ struct Position {
     // 通过FEN串初始化棋局
     void fromFen(string fen);
 
+#ifdef POS_DEBUG
     // 通过棋盘字符串初始化
     void fromStringMap(string* s);
+    void debug();
+#endif
 
     uint_fast8_t squares[256]; // 每个格子放的棋子，0 为无子
     uint_fast8_t pieces[48]; // 每个棋子放的位置，0 为棋子不存在
