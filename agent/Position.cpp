@@ -7,7 +7,7 @@
 #endif
 
 // 将FEN串中棋子标识转化为对应棋子类型 需toupper转化为大写
-uint_fast8_t charToPt(char c) {
+int_fast32_t charToPt(char c) {
     switch (c) {
         case 'K':
             return PIECE_KING;
@@ -29,7 +29,7 @@ uint_fast8_t charToPt(char c) {
 }
 
 // 将棋子转化为 FEN 字符 返回大写字符
-char ptToChar(uint_fast8_t pt) {
+char ptToChar(int_fast32_t pt) {
     switch (pt) {
         case PIECE_KING:
             return 'K';
@@ -50,43 +50,81 @@ char ptToChar(uint_fast8_t pt) {
     }
 }
 
-// 根据 x, y 返回序号 0 ~ 255
-uint_fast8_t Position::coordXY(int_fast8_t x, int_fast8_t y) {
-    return x + (y << 4);
-}
-
-// 根据 sq 0 ~ 255 返回行数 y
-int_fast8_t Position::getY(uint_fast8_t sq) {
-    return sq >> 4;
-}
-
-// 根据 sq 0 ~ 255 返回列数 x
-int_fast8_t Position::getX(uint_fast8_t sq) {
-    return sq & 15;
-}
-
-// 判断某位置是否在棋盘
-bool Position::isInBoard(uint_fast8_t sq) {
-    return IN_BOARD[sq];
-}
-
 // 初始化
 void Position::clear() {
     memset(this->squares, 0, sizeof(this->squares));
     memset(this->pieces, 0, sizeof(this->pieces));
+    sidePly = 0; // 默认红方 可通过 changeSide() 修改
 }
 
 // 将棋子 pc 添加进棋局中的 sq 位置
-void Position::addPiece(uint_fast8_t sq, uint_fast8_t pc, bool del) {
+void Position::addPiece(int_fast32_t sq, int_fast32_t pc, bool del) {
     if (del) this->squares[sq] = 0, this->pieces[pc] = 0;
     else this->squares[sq] = pc, this->pieces[pc] = sq;
     // this->zobr.Xor(PreGen.zobrTable[pt][sq]);
 }
 
+// 交换走子方
+void Position::changeSide() { this->sidePly = OPP_SIDE_TAG(this->sidePly); }
+
 // 通过FEN串初始化棋局
 void Position::fromFen(string fen) {
     this->clear();
     // ...
+}
+
+// 根据整型 mv 移动棋子；mv 见 MOVE() 函数
+void Position::movePiece(int_fast32_t mv) {
+    int_fast32_t src = SRC(mv), dst = DST(mv);
+    int_fast32_t pc = this->squares[src]; // 起点棋子
+    this->addPiece(dst, this->squares[dst]); // 删除终点棋子
+    this->addPiece(src, this->squares[src]); // 删除起点棋子
+    this->addPiece(dst, pc, ADD_PIECE); // 移动棋子
+}
+
+// 根据 mvStr 字符串移动棋子
+void Position::movePiece(string mvStr) {
+#ifdef POS_DEBUG
+    if (mvStr.size() != 4) {
+        cout << "wrong move input!" << endl;
+        cout.flush();
+        return;
+    }
+#endif
+
+    int_fast32_t preY = mvStr[1] - '0', preX = mvStr[0] - 'a';
+    int_fast32_t toY = mvStr[3] - '0', toX = mvStr[2] - 'a';
+
+#ifdef POS_DEBUG
+    if (!(0 <= preY && preY <= 9 && 0 <= preX && preX <= 8)) {
+        cerr << "wrong move input!" << endl;
+        cout.flush();
+        return;
+    }
+
+    if (!(0 <= toY && toY <= 9 && 0 <= toX && toX <= 8)) {
+        cerr << "wrong move input!" << endl;
+        cout.flush();
+        return;
+    }
+#endif
+
+    int_fast32_t src = COORD_XY(preX + RANK_LEFT, preY + RANK_TOP);
+    int_fast32_t dst = COORD_XY(toX + RANK_LEFT, toY + RANK_TOP);
+
+#ifdef POS_DEBUG
+    if (!this->squares[src] ||
+        (this->squares[dst] &&
+         !((this->squares[src] ^ this->squares[dst]) & 16))) {
+        cerr << "wrong move input!" << endl;
+        cout.flush();
+        return;
+    }
+#endif
+    int_fast32_t pc = this->squares[src]; // 起点棋子
+    this->addPiece(dst, this->squares[dst]); // 删除终点棋子
+    this->addPiece(src, this->squares[src]); // 删除起点棋子
+    this->addPiece(dst, pc, ADD_PIECE); // 移动棋子
 }
 
 /* 通过棋盘字符串初始化
@@ -105,9 +143,9 @@ void Position::fromFen(string fen) {
   a b c d e f g h i
  */
 #ifdef POS_DEBUG // 仅 debug 模式下使用
-void Position::fromStringMap(string* s) { // 9 - 0 行的字符串
+void Position::fromStringMap(string* s, bool side) { // 9 - 0 行的字符串
     // pcRed 和 pcBlack 分别代表红方和黑方每个兵种即将占有的序号
-    uint_fast8_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
+    int_fast32_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
     pcRed[0] = SIDE_TAG(0) + KING_FROM;
     pcRed[1] = SIDE_TAG(0) + ADVISOR_FROM;
     pcRed[2] = SIDE_TAG(0) + BISHOP_FROM;
@@ -115,14 +153,14 @@ void Position::fromStringMap(string* s) { // 9 - 0 行的字符串
     pcRed[4] = SIDE_TAG(0) + ROOK_FROM;
     pcRed[5] = SIDE_TAG(0) + CANNON_FROM;
     pcRed[6] = SIDE_TAG(0) + PAWN_FROM;
-    for (int_fast8_t i = 0; i < PIECE_EMPTY; i++)
+    for (int_fast32_t i = 0; i < PIECE_EMPTY; i++)
         pcBlack[i] = pcRed[i] + 16;
     // 清空棋盘
     this->clear();
 
     // 读取棋子
-    for (int_fast8_t j = 9, x = 0, y = 9, pcType; ~j; j--) {
-        for (int_fast8_t i = 2; i < s[j].size() - 2; i += 2) {
+    for (int_fast32_t j = 9, x = 0, y = 9, pcType; ~j; j--) {
+        for (int_fast32_t i = 2; i < s[j].size() - 2; i += 2) {
             x = i / 2 - 1 + RANK_LEFT;
             y = j + RANK_TOP;
             pcType = charToPt(toupper(s[j][i])); // 获得棋子类型
@@ -130,30 +168,32 @@ void Position::fromStringMap(string* s) { // 9 - 0 行的字符串
             if (isupper(s[j][i])) {
                 if (pcRed[pcType] < 32) {
                     if (this->pieces[pcRed[pcType]] == 0) {
-                        this->addPiece(this->coordXY(x, y), pcRed[pcType]);
+                        this->addPiece(COORD_XY(x, y), pcRed[pcType], ADD_PIECE);
                         pcRed[pcType]++;
                     }
                 }
             } else {
                 if (pcBlack[pcType] < 48) {
                     if (this->pieces[pcBlack[pcType]] == 0) {
-                        this->addPiece(this->coordXY(x, y), pcBlack[pcType]);
+                        this->addPiece(COORD_XY(x, y), pcBlack[pcType], ADD_PIECE);
                         pcBlack[pcType]++;
                     }
                 }
             }
         }
     }
+    if (side) this->changeSide();
 }
 
 void Position::debug() { // 仅 debug 模式下使用
+    cout << "side: " << this->sidePly << endl;
     cout << "  a b c d e f g h i" << endl;
-    for (int y = RANK_BOTTOM; y >= RANK_TOP; y--) { // 行
+    for (int_fast32_t y = RANK_BOTTOM; y >= RANK_TOP; y--) { // 行
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
         cout << y - RANK_TOP << "|";
-        for (int x = RANK_LEFT; x <= RANK_RIGHT; x++) { // 列
+        for (int_fast32_t x = RANK_LEFT; x <= RANK_RIGHT; x++) { // 列
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
-            auto pc = this->squares[this->coordXY(x, y)]; // (x, y) 处棋子
+            auto pc = this->squares[COORD_XY(x, y)]; // (x, y) 处棋子
             if (pc == 0) cout << "*" << " ";
             else if (pc < 32) { // 红
                 SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY | FOREGROUND_RED);
