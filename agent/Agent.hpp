@@ -76,7 +76,6 @@ void Agent::move() {
     string s;
     cin >> s;
     pos.movePiece(s);
-    pos.debug();
 }
 #endif
 
