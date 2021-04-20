@@ -54,7 +54,9 @@ char ptToChar(int_fast32_t pt) {
 void Position::clear() {
     memset(this->squares, 0, sizeof(this->squares));
     memset(this->pieces, 0, sizeof(this->pieces));
-    sidePly = 0; // 默认红方 可通过 changeSide() 修改
+    this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
+    this->vlRed = this->vlBlack = 0;
+    this->moveNum = 0, this->distance = 0;
 }
 
 // 将棋子 pc 添加进棋局中的 sq 位置
@@ -77,9 +79,9 @@ void Position::fromFen(string fen) {
 void Position::movePiece(int_fast32_t mv) {
     int_fast32_t src = SRC(mv), dst = DST(mv);
     int_fast32_t pc = this->squares[src]; // 起点棋子
-    this->addPiece(dst, this->squares[dst]); // 删除终点棋子
-    this->addPiece(src, this->squares[src]); // 删除起点棋子
-    this->addPiece(dst, pc, ADD_PIECE); // 移动棋子
+    this->addPiece(dst, this->squares[dst], DEL_PIECE); // 删除终点棋子
+    this->addPiece(src, this->squares[src], DEL_PIECE); // 删除起点棋子
+    this->addPiece(dst, pc); // 移动棋子
 }
 
 // 根据 mvStr 字符串移动棋子
@@ -122,9 +124,13 @@ void Position::movePiece(string mvStr) {
     }
 #endif
     int_fast32_t pc = this->squares[src]; // 起点棋子
-    this->addPiece(dst, this->squares[dst]); // 删除终点棋子
-    this->addPiece(src, this->squares[src]); // 删除起点棋子
-    this->addPiece(dst, pc, ADD_PIECE); // 移动棋子
+    this->addPiece(dst, this->squares[dst], DEL_PIECE); // 删除终点棋子
+    this->addPiece(src, this->squares[src], DEL_PIECE); // 删除起点棋子
+    this->addPiece(dst, pc); // 移动棋子
+
+#ifdef POS_DEBUG
+    this->debug();
+#endif
 }
 
 /* 通过棋盘字符串初始化
@@ -168,14 +174,14 @@ void Position::fromStringMap(string* s, bool side) { // 9 - 0 行的字符串
             if (isupper(s[j][i])) {
                 if (pcRed[pcType] < 32) {
                     if (this->pieces[pcRed[pcType]] == 0) {
-                        this->addPiece(COORD_XY(x, y), pcRed[pcType], ADD_PIECE);
+                        this->addPiece(COORD_XY(x, y), pcRed[pcType]);
                         pcRed[pcType]++;
                     }
                 }
             } else {
                 if (pcBlack[pcType] < 48) {
                     if (this->pieces[pcBlack[pcType]] == 0) {
-                        this->addPiece(COORD_XY(x, y), pcBlack[pcType], ADD_PIECE);
+                        this->addPiece(COORD_XY(x, y), pcBlack[pcType]);
                         pcBlack[pcType]++;
                     }
                 }
