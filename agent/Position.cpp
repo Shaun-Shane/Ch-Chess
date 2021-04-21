@@ -84,6 +84,20 @@ void Position::movePiece(int_fast32_t mv) {
     this->addPiece(dst, pc); // 移动棋子
 }
 
+// 撤销移动
+void Position::undoMovePiece() {
+
+}
+
+// 执行走法
+void Position::makeMove() {
+
+}
+
+void Position::undoMakeMove() {
+
+}
+
 // 根据 mvStr 字符串移动棋子
 void Position::movePiece(string mvStr) {
 #ifdef POS_DEBUG
@@ -111,8 +125,8 @@ void Position::movePiece(string mvStr) {
     }
 #endif
 
-    int_fast32_t src = COORD_XY(preX + RANK_LEFT, preY + RANK_TOP);
-    int_fast32_t dst = COORD_XY(toX + RANK_LEFT, toY + RANK_TOP);
+    int_fast32_t src = COORD_XY(preX + X_FROM, preY + Y_FROM);
+    int_fast32_t dst = COORD_XY(toX + X_FROM, toY + Y_FROM);
 
 #ifdef POS_DEBUG
     if (!this->squares[src] ||
@@ -149,7 +163,7 @@ void Position::movePiece(string mvStr) {
   a b c d e f g h i
  */
 #ifdef POS_DEBUG // 仅 debug 模式下使用
-void Position::fromStringMap(string* s, bool side) { // 9 - 0 行的字符串
+void Position::fromStringMap(string* s, int_fast32_t side) { // 9 - 0 行的字符串
     // pcRed 和 pcBlack 分别代表红方和黑方每个兵种即将占有的序号
     int_fast32_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
     pcRed[0] = SIDE_TAG(0) + KING_FROM;
@@ -167,8 +181,8 @@ void Position::fromStringMap(string* s, bool side) { // 9 - 0 行的字符串
     // 读取棋子
     for (int_fast32_t j = 9, x = 0, y = 9, pcType; ~j; j--) {
         for (int_fast32_t i = 2; i < s[j].size() - 2; i += 2) {
-            x = i / 2 - 1 + RANK_LEFT;
-            y = j + RANK_TOP;
+            x = i / 2 - 1 + X_FROM;
+            y = j + Y_FROM;
             pcType = charToPt(toupper(s[j][i])); // 获得棋子类型
             if (pcType == PIECE_EMPTY) continue;
             if (isupper(s[j][i])) {
@@ -194,10 +208,10 @@ void Position::fromStringMap(string* s, bool side) { // 9 - 0 行的字符串
 void Position::debug() { // 仅 debug 模式下使用
     cout << "side: " << this->sidePly << endl;
     cout << "  a b c d e f g h i" << endl;
-    for (int_fast32_t y = RANK_BOTTOM; y >= RANK_TOP; y--) { // 行
+    for (int_fast32_t y = Y_TO; y >= Y_FROM; y--) { // 行
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
-        cout << y - RANK_TOP << "|";
-        for (int_fast32_t x = RANK_LEFT; x <= RANK_RIGHT; x++) { // 列
+        cout << y - Y_FROM << "|";
+        for (int_fast32_t x = X_FROM; x <= X_TO; x++) { // 列
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
             auto pc = this->squares[COORD_XY(x, y)]; // (x, y) 处棋子
             if (pc == 0) cout << "*" << " ";
@@ -209,7 +223,7 @@ void Position::debug() { // 仅 debug 模式下使用
             }
         }
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
-        cout << "|" << y - RANK_TOP << endl;
+        cout << "|" << y - Y_FROM << endl;
     }
     cout << "  a b c d e f g h i" << endl;
     cout << endl;

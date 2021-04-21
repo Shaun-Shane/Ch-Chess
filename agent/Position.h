@@ -40,10 +40,10 @@ constexpr int_fast32_t MAX_GER_NUM = 128; // 最多可能的着法数 不会超�
 constexpr int_fast32_t MAX_DISTANCE = 128; // 最多搜索层数
 
 // 棋盘范围
-constexpr int_fast32_t RANK_TOP = 3;
-constexpr int_fast32_t RANK_BOTTOM = 12;
-constexpr int_fast32_t RANK_LEFT = 3;
-constexpr int_fast32_t RANK_RIGHT = 11;
+constexpr int_fast32_t Y_FROM = 3;
+constexpr int_fast32_t Y_TO = 12;
+constexpr int_fast32_t X_FROM = 3;
+constexpr int_fast32_t X_TO = 11;
 
 // 用于判断棋子是否在棋盘上
 constexpr int_fast32_t _IN_BOARD[256] = {
@@ -114,6 +114,26 @@ inline bool SELF_SIDE(int_fast32_t sq, int_fast32_t side) {
     return (sq & 0x80) != (side << 7);
 }
 
+// 返回向前走一步后的位置 sq
+inline int SQ_FORWAR(int_fast32_t sq, int_fast32_t side) {
+    return sq + 16 - (side) << 5;
+}
+
+// 镜像后的位置 注意一开始红方 < 128 并未翻转
+inline int SQ_FLIP(int sq) {
+    return 256 - sq;
+}
+
+// 如果两位置在同一行，返回 true
+inline bool SAME_Y(int src, int dst) {
+    return ((src ^ dst) & 0xf0) == 0;
+}
+
+// 如果两位置在同一列，返回 true
+inline bool SAME_X(int src, int dst) {
+    return ((src ^ dst) & 0x0f) == 0;
+}
+
 /* 棋子序号对应的棋子类型
  *
  * 棋子序号从0到47，其中0到15不用，16到31表示红子，32到47表示黑子。
@@ -149,7 +169,7 @@ inline int_fast32_t SIDE_TAG(int_fast32_t side) { return 16 + (side << 4); }
 
 inline int_fast32_t OPP_SIDE_TAG(int_fast32_t side) { return 32 - (side << 4); }
 
-inline bool OPP_SIDE(bool sd) { return sd ^ 1; }
+inline int_fast32_t OPP_SIDE(int_fast32_t sd) { return sd ^ 1; }
 
 // 着法对象
 struct MoveObj { int_fast32_t mv, vl, cap; /* 着法、分值、捕获的棋子*/ };
@@ -203,20 +223,30 @@ struct Position {
 
     // 根据整型 mv 移动棋子；mv 见 MOVE() 函数
     void movePiece(int_fast32_t mv);
+    // 撤销移动
+    void undoMovePiece();
+
+    // 执行走法
+    void makeMove();
+    // 撤销走法
+    void undoMakeMove();
+
 
     // 着法生成 见 genMoves.cpp 帅仕相马车炮兵
     void genAllMoves();
+    // 得到下一个走法，如果有走法则返回 true
+    bool nextMove();
 
 #ifdef POS_DEBUG
     // 通过棋盘字符串初始化
-    void fromStringMap(string* s, bool side);
+    void fromStringMap(string* s, int_fast32_t side);
     void debug();
 #endif
     // 棋子-棋盘联系组
     int_fast32_t squares[256]; // 每个格子放的棋子，0 为无子
     int_fast32_t pieces[48]; // 每个棋子放的位置，0 为棋子不存在
 
-    bool sidePly; // 走子方，0 为 红方，1 为 黑方
+    int_fast32_t sidePly; // 走子方，0 为 红方，1 为 黑方
 
     int_fast32_t vlRed, vlBlack; // 红方、黑方估值
 
@@ -224,6 +254,7 @@ struct Position {
     RollbackObj rollBackList[MAX_LIST_SIZE]; // 回滚列表
 
     int_fast32_t genNum[MAX_DISTANCE]; // 某一层的着法数
+    int_fast8_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
     MoveObj mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
 } pos;
 
