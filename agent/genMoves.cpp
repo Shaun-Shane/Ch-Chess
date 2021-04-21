@@ -15,11 +15,11 @@
     }
 
 void Position::genAllMoves() {
-    int sideTag = SIDE_TAG(this->sidePly);
-    int src, dst, i, j, k, delta;
-    // 0. 该 distance 下的 genNum curMvCnt 清零
+    int_fast32_t sideTag = SIDE_TAG(this->sidePly);
+    int_fast32_t src, dst, i, j, k, delta;
+    // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
-    this->curMvCnt[this->distance] = 0;
+    this->curMvCnt[this->distance] = -1;
     MoveObj* mvsGenPtr = this->mvsGen[this->distance];
 
     // 1. 生成 KING 走法
@@ -88,7 +88,7 @@ void Position::genAllMoves() {
             delta = KING_DELTA[j];
             dst = src + delta; // 从起点开始，沿着方向 delta 走一步
             while (IN_BOARD(dst)) { // 终点在棋盘内
-                if (this->squares[dst] & sideTag) break; // 遇到己方棋子 停止
+                if (this->squares[dst]) break; // 遇到棋子 停止
                 ADD_MOVE();
                 dst += delta; // 沿着方向 delta 走一步
             }
@@ -113,12 +113,6 @@ void Position::genAllMoves() {
             if (IN_BOARD(dst = src + 1)) ADD_MOVE();
         }
     }
-}
-
-
-// 得到下一个走法
-bool Position::nextMove() {
-
 }
 
 #endif
