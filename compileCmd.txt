@@ -1,0 +1,1 @@
+g++ -O4 -std=c++11 -Wall "-Wl,--stack=268435456" main.cpp Agent\Position.cpp Agent\genMoves.cpp -o main.exe
