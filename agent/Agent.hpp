@@ -1,12 +1,22 @@
 #ifndef AGENT_HPP
 #define AGENT_HPP
 
+#define DEBUG
+
 #include <bits/stdc++.h>
+
+#ifndef DEBUG
+#include "Position.h"
+#else
 #include "Position.cpp"
+#include "genMoves.cpp"
+#endif
 
 using namespace std;
 
 constexpr bool RED = 0, BLACK = 1;
+
+Position pos;
 
 struct Agent {
     // 运行
@@ -38,6 +48,16 @@ void Agent::run() {
             init();
         } else if (opt == "turn") { // my turn
             // ...
+            pos.genAllMoves();
+            cout << pos.distance << endl;
+            cout << pos.genNum[pos.distance] << endl;
+            while (pos.nextMove()) {
+                pos.makeMove();
+                pos.debug();
+                pos.undoMakeMove();
+            }
+            cout << pos.distance << endl;
+            pos.debug();
         } else if (opt == "move") {
             move();
         } else if (opt == "end") break;

@@ -46,43 +46,9 @@ constexpr int_fast32_t X_FROM = 3;
 constexpr int_fast32_t X_TO = 11;
 
 // 用于判断棋子是否在棋盘上
-constexpr int_fast32_t _IN_BOARD[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-constexpr int_fast32_t _IN_FORT[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+extern const int_fast32_t _IN_BOARD[256];
+// 用于判断棋子是否在九宫内
+extern const int_fast32_t _IN_FORT[256];
 
 // 根据 x, y 返回序号 0 ~ 255
 inline int_fast32_t COORD_XY(int_fast32_t x, int_fast32_t y) {
@@ -109,19 +75,19 @@ inline bool IN_FORT(int_fast32_t sq) {
     return _IN_FORT[sq];
 }
 
-// 根据象的位置 sq 判断是否过河，未过河返回 true；否则返回 false
+// 根据位置 sq 判断是否过河，未过河返回 true；否则返回 false
 inline bool SELF_SIDE(int_fast32_t sq, int_fast32_t side) {
-    return (sq & 0x80) != (side << 7);
+    return (sq & 0x80) == (side << 7); // 设定红方 sq 小
 }
 
 // 返回向前走一步后的位置 sq
 inline int SQ_FORWAR(int_fast32_t sq, int_fast32_t side) {
-    return sq + 16 - (side) << 5;
+    return sq + 16 - (side << 5);
 }
 
-// 镜像后的位置 注意一开始红方 < 128 并未翻转
+// 镜像后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
 inline int SQ_FLIP(int sq) {
-    return 256 - sq;
+    return 254 - sq;
 }
 
 // 如果两位置在同一行，返回 true
@@ -140,18 +106,10 @@ inline bool SAME_X(int src, int dst) {
  * 帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
  * 判断棋子是红子 "pc < 32"，黑子 "pc >= 32"
  */
-constexpr int_fast32_t pieceTypes[48] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
-    0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6
-};
+extern const int_fast32_t pieceTypes[48];
 
 // 棋子的简单分值，只在简单比较时作参考
-constexpr int_fast32_t simpleValues[48] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2,
-    5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2
-};
+extern const int_fast32_t simpleValues[48];
 
 // 获得棋子类型
 inline int_fast32_t PIECE_TYPE(int_fast32_t pc) { return pieceTypes[pc]; }
@@ -186,9 +144,9 @@ inline uint_fast16_t MOVE(int_fast32_t src, int_fast32_t dst) {
 }
 
 // 棋子走法
-int_fast32_t KING_DELTA[4] = {-16, -1, 1, 16};
-int_fast32_t ADVISOR_DELTA[4] = {-17, -15, 15, 17};
-int_fast32_t KNIGHT_DELTA[4][2] = {{-33, -31}, {-18, 14}, {-14, 18}, {31, 33}};
+extern const int_fast32_t KING_DELTA[4];
+extern const int_fast32_t ADVISOR_DELTA[4];
+extern const int_fast32_t KNIGHT_DELTA[4][2];
 
 // 将FEN串中棋子标识转化为对应棋子类型 pt 需toupper转化为大写
 int_fast32_t charToPt(char c);
@@ -214,6 +172,10 @@ struct Position {
 
     // 交换走子方
     void changeSide();
+    // 保存状态
+    void saveStatus();
+    // 回到之前状态
+    void rollBack();
 
     // 通过FEN串初始化棋局
     void fromFen(string fen);
@@ -223,19 +185,19 @@ struct Position {
 
     // 根据整型 mv 移动棋子；mv 见 MOVE() 函数
     void movePiece(int_fast32_t mv);
-    // 撤销移动
-    void undoMovePiece();
+    // 撤销移动棋子
+    void undoMovePiece(int_fast32_t mv, int_fast32_t cap);
 
     // 执行走法
     void makeMove();
     // 撤销走法
     void undoMakeMove();
+    // 得到下一个走法，如果有走法则返回 true
+    bool nextMove();
 
 
     // 着法生成 见 genMoves.cpp 帅仕相马车炮兵
     void genAllMoves();
-    // 得到下一个走法，如果有走法则返回 true
-    bool nextMove();
 
 #ifdef POS_DEBUG
     // 通过棋盘字符串初始化
@@ -256,6 +218,8 @@ struct Position {
     int_fast32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int_fast8_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
     MoveObj mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
-} pos;
+};
+
+extern Position pos;
 
 #endif
