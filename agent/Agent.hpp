@@ -3,16 +3,12 @@
 
 #define DEBUG
 
-#include <bits/stdc++.h>
-
 #ifndef DEBUG
 #include "Position.h"
 #else
 #include "Position.cpp"
 #include "genMoves.cpp"
 #endif
-
-using namespace std;
 
 constexpr bool RED = 0, BLACK = 1;
 
@@ -30,6 +26,7 @@ struct Agent {
 
 #ifdef POS_DEBUG
     void set();
+    void printVl();
 #endif
 
     // 己方颜色 默认红色
@@ -38,39 +35,43 @@ struct Agent {
 
 void Agent::run() {
     while (true) {
-        cout << "$ ";
-        cout.flush();
-        string opt, x;
-        cin >> opt;
+        std::cout << "$ ";
+        std::cout.flush();
+        std::string opt, x;
+        std::cin >> opt;
         if (opt == "start") {
-            cin >> x; //input color r | b
+            std::cin >> x; //input color r | b
             aiSide = (x == "r" ? RED : BLACK);
             init();
+            // printVl();
         } else if (opt == "turn") { // my turn
             // ...
-            pos.genAllMoves();
-            cout << pos.distance << endl;
-            cout << pos.genNum[pos.distance] << endl;
-            while (pos.nextMove()) {
-                pos.makeMove();
-                pos.debug();
-                pos.undoMakeMove();
-            }
-            cout << pos.distance << endl;
-            pos.debug();
+            // pos.genAllMoves();
+            // std::cout << pos.distance << std::endl;
+            // std::cout << pos.genNum[pos.distance] << std::endl;
+            // while (pos.nextMove()) {
+            //     pos.makeMove();
+            //     pos.debug();
+            //     // printVl();
+            //     pos.undoMakeMove();
+            // }
+            // std::cout << pos.distance << std::endl;
+            // pos.debug();
+            // printVl();
         } else if (opt == "move") {
             move();
+            // printVl();
         } else if (opt == "end") break;
 #ifdef POS_DEBUG
-        else if (opt == "set") set();
+        else if (opt == "set") set()/*, printVl()*/;
 #endif
-        else cout << "invalid input" << endl;
+        else std::cout << "invalid input" << std::endl;
     }
 }
 
 void Agent::init() {
 #ifdef POS_DEBUG
-    string s[] = {"0|R N B A K A B N R |0", "1|* * * * * * * * * |1",
+    std::string s[] = {"0|R N B A K A B N R |0", "1|* * * * * * * * * |1",
                   "2|* C * * * * * C * |2", "3|P * P * P * P * P |3",
                   "4|* * * * * * * * * |4", "5|* * * * * * * * * |5",
                   "6|p * p * p * p * p |6", "7|* c * * * * * c * |7",
@@ -83,19 +84,23 @@ void Agent::init() {
 
 #ifdef POS_DEBUG
 void Agent::set() {
-    string s[10], tmp;
-    cin.ignore('\n');
-    getline(cin, tmp);
-    for (int_fast32_t j = 9; j >= 0; j--) getline(cin, s[j]);
-    getline(cin, tmp);
+    std::string s[10], tmp;
+    std::cin.ignore('\n');
+    getline(std::cin, tmp);
+    for (int_fast32_t j = 9; j >= 0; j--) getline(std::cin, s[j]);
+    getline(std::cin, tmp);
     pos.fromStringMap(s, aiSide);
     pos.debug();
 }
 
 void Agent::move() {
-    string s;
-    cin >> s;
+    std::string s;
+    std::cin >> s;
     pos.movePiece(s);
+}
+
+void Agent::printVl() {
+    std::cout << "scores: " << pos.vlRed << " " << pos.vlBlack << std::endl;
 }
 #endif
 

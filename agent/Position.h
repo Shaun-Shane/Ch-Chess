@@ -1,11 +1,10 @@
 #ifndef POSITION_H
 #define POSITION_H
 
-#include <bits/stdc++.h>
+#include <iostream>
+#include <cctype>
 
 #define POS_DEBUG
-
-using namespace std;
 
 // 棋子编号
 constexpr int_fast32_t PIECE_KING = 0;    // 将
@@ -148,6 +147,12 @@ extern const int_fast32_t KING_DELTA[4];
 extern const int_fast32_t ADVISOR_DELTA[4];
 extern const int_fast32_t KNIGHT_DELTA[4][2];
 
+/* 棋子类型-位置价值表
+ * 获取棋子类型见 PIECE_TYPE(pc) 函数
+ * 注意黑方在下 初始 sq 大
+ */ 
+extern const int_fast32_t SQ_VALUE[PIECE_EMPTY + 1][256];
+
 // 将FEN串中棋子标识转化为对应棋子类型 pt 需toupper转化为大写
 int_fast32_t charToPt(char c);
 
@@ -155,6 +160,8 @@ int_fast32_t charToPt(char c);
  * pt 为棋子类型
  */
 char ptToChar(int_fast32_t pt);
+
+std::string MOVE_TO_STR(int_fast32_t mv);
 
 // 回滚对象
 struct RollbackObj {
@@ -178,10 +185,10 @@ struct Position {
     void rollBack();
 
     // 通过FEN串初始化棋局
-    void fromFen(string fen);
+    void fromFen(std::string fen);
 
     // 根据 mvStr 字符串移动棋子
-    void movePiece(string mvStr);
+    void movePiece(std::string mvStr);
 
     // 根据整型 mv 移动棋子；mv 见 MOVE() 函数
     void movePiece(int_fast32_t mv);
@@ -201,7 +208,7 @@ struct Position {
 
 #ifdef POS_DEBUG
     // 通过棋盘字符串初始化
-    void fromStringMap(string* s, int_fast32_t side);
+    void fromStringMap(std::string* s, int_fast32_t side);
     void debug();
 #endif
     // 棋子-棋盘联系组
