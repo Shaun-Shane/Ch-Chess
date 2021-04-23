@@ -1,18 +1,18 @@
 #ifndef AGENT_HPP
 #define AGENT_HPP
 
-#define DEBUG
+// VSC_DEBUG 在 search.h 中也有
+#define VSC_DEBUG
 
-#ifndef DEBUG
-#include "Position.h"
+#ifndef VSC_DEBUG
+#include "search.h"
 #else
-#include "Position.cpp"
-#include "genMoves.cpp"
+#include "search.cpp"
 #endif
 
-constexpr bool RED = 0, BLACK = 1;
+#include <ctime>
 
-Position pos;
+constexpr bool RED = 0, BLACK = 1;
 
 struct Agent {
     // 运行
@@ -24,10 +24,11 @@ struct Agent {
     // 移动棋子
     void move();
 
-#ifdef POS_DEBUG
+    // 设置局面
     void set();
+
+    // debug 双方分数
     void printVl();
-#endif
 
     // 己方颜色 默认红色
     bool aiSide = RED;
@@ -45,26 +46,18 @@ void Agent::run() {
             init();
             // printVl();
         } else if (opt == "turn") { // my turn
-            // ...
-            // pos.genAllMoves();
-            // std::cout << pos.distance << std::endl;
-            // std::cout << pos.genNum[pos.distance] << std::endl;
-            // while (pos.nextMove()) {
-            //     pos.makeMove();
-            //     pos.debug();
-            //     // printVl();
-            //     pos.undoMakeMove();
-            // }
-            // std::cout << pos.distance << std::endl;
-            // pos.debug();
-            // printVl();
+            auto st = clock();
+            auto result = searchRoot(6);
+            std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
+            std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
+            pos.movePiece(result.second);
+            pos.debug();
+            std::cout << "vlBest: " << result.first << std::endl;
         } else if (opt == "move") {
             move();
             // printVl();
         } else if (opt == "end") break;
-#ifdef POS_DEBUG
         else if (opt == "set") set()/*, printVl()*/;
-#endif
         else std::cout << "invalid input" << std::endl;
     }
 }
@@ -82,15 +75,16 @@ void Agent::init() {
     // ... 
 }
 
-#ifdef POS_DEBUG
 void Agent::set() {
+#ifdef POS_DEBUG
     std::string s[10], tmp;
     std::cin.ignore('\n');
     getline(std::cin, tmp);
-    for (int_fast32_t j = 9; j >= 0; j--) getline(std::cin, s[j]);
+    for (int_fast16_t j = 9; j >= 0; j--) getline(std::cin, s[j]);
     getline(std::cin, tmp);
     pos.fromStringMap(s, aiSide);
     pos.debug();
+#endif
 }
 
 void Agent::move() {
@@ -102,6 +96,5 @@ void Agent::move() {
 void Agent::printVl() {
     std::cout << "scores: " << pos.vlRed << " " << pos.vlBlack << std::endl;
 }
-#endif
 
 #endif
