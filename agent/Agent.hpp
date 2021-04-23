@@ -47,7 +47,7 @@ void Agent::run() {
             // printVl();
         } else if (opt == "turn") { // my turn
             auto st = clock();
-            auto result = searchRoot(6);
+            auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
             std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
             pos.movePiece(result.second);
