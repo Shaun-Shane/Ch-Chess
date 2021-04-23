@@ -5,7 +5,7 @@
     {                                                               \
         if (!(this->squares[dst] & sideTag)) {                      \
             mvsGenPtr->mv = MOVE(src, dst);                         \
-            /*mvsGenPtr->vl = ...*/                                 \
+            mvsGenPtr->vl = historyTable[historyIndex(mvsGenPtr->mv)]; \
             mvsGenPtr->cap = this->squares[dst];                    \
             mvsGenPtr++, this->genNum[this->distance]++;            \
         }                                                           \
@@ -111,4 +111,11 @@ void Position::genAllMoves() {
             if (IN_BOARD(dst = src + 1)) ADD_MOVE();
         }
     }
+    
+    // 8. 对着法排序
+    sortMoves();
+}
+
+void Position::sortMoves() {
+    std::sort(this->mvsGen[this->distance], this->mvsGen[this->distance] + this->genNum[this->distance]);
 }
