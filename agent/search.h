@@ -15,7 +15,8 @@
 #include "evaluate.cpp"
 #endif
 
-
+// 搜索主函数
+std::pair<int_fast16_t, int_fast16_t> searchMain();
 
 // 根节点搜索
 std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth);

@@ -1,4 +1,11 @@
 #include "search.h"
+#include "Position.h"
+
+// 搜索主函数
+std::pair<int_fast16_t, int_fast16_t> searchMain() {
+    memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
+    return searchRoot(6);
+}
 
 std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
     int_fast16_t vlBest(-MATE_VALUE), mvBest(0), mv, vl;
@@ -40,10 +47,10 @@ std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
 int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta) {
     if (depth <= 0) return evalute();
     
-    int_fast16_t vlBest(-MATE_VALUE), vl;
+    int_fast16_t vlBest(-MATE_VALUE), mvBest(0), mv, vl;
 
     pos.genAllMoves();
-    while (pos.nextMove()) {
+    while ((mv = pos.nextMove())) {
        if (!pos.makeMove()) continue;
 
         // PVS
@@ -58,7 +65,7 @@ int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t bet
         pos.undoMakeMove();
 
         if (vl > vlBest) {
-            vlBest = vl;
+            vlBest = vl, mvBest = mv;
             if (vl >= beta) break;
         }
 
@@ -67,5 +74,8 @@ int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t bet
 
     // 所有走法都走完了，找不到合法着法，输棋
     if (vlBest == -MATE_VALUE) return pos.mateValue();
+
+    if (vlBest > 0) setHistory(mvBest, depth);
+
     return vlBest;
 }

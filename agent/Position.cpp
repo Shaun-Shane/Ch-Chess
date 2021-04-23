@@ -8,6 +8,8 @@
 
 Position pos;
 
+int_fast64_t historyTable[1 << 12] = {0};
+
 // 用于判断棋子是否在棋盘上
 const int_fast16_t _IN_BOARD[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -258,6 +260,20 @@ char ptToChar(int_fast16_t pt) {
         default:
             return 0;
     }
+}
+
+int_fast32_t historyIndex(int_fast16_t mv) {
+    return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv);
+}
+
+void setHistory(int_fast16_t mv, int_fast16_t depth) {
+    historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv)] += depth * depth;
 }
 
 std::string MOVE_TO_STR(int_fast16_t mv) {
