@@ -6,8 +6,10 @@
 #include "windows.h"
 #endif
 
+Position pos;
+
 // 用于判断棋子是否在棋盘上
-const int_fast32_t _IN_BOARD[256] = {
+const int_fast16_t _IN_BOARD[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -26,7 +28,7 @@ const int_fast32_t _IN_BOARD[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-const int_fast32_t _IN_FORT[256] = {
+const int_fast16_t _IN_FORT[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -51,14 +53,14 @@ const int_fast32_t _IN_FORT[256] = {
  * 帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
  * 判断棋子是红子 "pc < 32"，黑子 "pc >= 32"
  */
-const int_fast32_t pieceTypes[48] = {
+const int_fast16_t pieceTypes[48] = {
     7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
     0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
     0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6
 };
 
 // 棋子的简单分值，只在简单比较时作参考
-const int_fast32_t simpleValues[48] = {
+const int_fast16_t simpleValues[48] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2,
     5, 1, 1, 1, 1, 3, 3, 4, 4, 3, 3, 2, 2, 2, 2, 2
@@ -68,7 +70,7 @@ const int_fast32_t simpleValues[48] = {
  * 获取棋子类型见 PIECE_TYPE(pc) 函数
  * 注意黑方在下 初始 sq 大
  */ 
-const int_fast32_t SQ_VALUE[PIECE_EMPTY + 1][256] = {
+const int_fast16_t SQ_VALUE[PIECE_EMPTY + 1][256] = {
     { // 将
         0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
         0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -209,12 +211,13 @@ const int_fast32_t SQ_VALUE[PIECE_EMPTY + 1][256] = {
 };
 
 // 棋子走法
-const int_fast32_t KING_DELTA[4] = {-16, -1, 1, 16};
-const int_fast32_t ADVISOR_DELTA[4] = {-17, -15, 15, 17};
-const int_fast32_t KNIGHT_DELTA[4][2] = {{-33, -31}, {-18, 14}, {-14, 18}, {31, 33}};
+const int_fast16_t KING_DELTA[4] = {-16, -1, 1, 16};
+const int_fast16_t ADVISOR_DELTA[4] = {-17, -15, 15, 17};
+const int_fast16_t KNIGHT_DELTA[4][2] = {{-33, -31}, {-18, 14}, {-14, 18}, {31, 33}};
+const int_fast16_t KING_KNIGHT_DELTA[4][2] = {{-18, -33}, {-31, -14}, {31, 14}, {18, 33}}; // 用于判断是否被马将军 和仕关联
 
 // 将FEN串中棋子标识转化为对应棋子类型 需toupper转化为大写
-int_fast32_t charToPt(char c) {
+int_fast16_t charToPt(char c) {
     switch (c) {
         case 'K':
             return PIECE_KING;
@@ -236,7 +239,7 @@ int_fast32_t charToPt(char c) {
 }
 
 // 将棋子转化为 FEN 字符 返回大写字符
-char ptToChar(int_fast32_t pt) {
+char ptToChar(int_fast16_t pt) {
     switch (pt) {
         case PIECE_KING:
             return 'K';
@@ -257,7 +260,7 @@ char ptToChar(int_fast32_t pt) {
     }
 }
 
-std::string MOVE_TO_STR(int_fast32_t mv) {
+std::string MOVE_TO_STR(int_fast16_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;
     int toX = GET_X(dst) - X_FROM, toY = GET_Y(dst) - Y_FROM;
@@ -275,7 +278,7 @@ void Position::clear() {
 }
 
 // 将棋子 pc 添加进棋局中的 sq 位置
-void Position::addPiece(int_fast32_t sq, int_fast32_t pc, bool del) {
+void Position::addPiece(int_fast16_t sq, int_fast16_t pc, bool del) {
     if (del) {
         (pc & 16) ? vlRed -= SQ_VALUE[PIECE_TYPE(pc)][SQ_FLIP(sq)]
                   : vlBlack -= SQ_VALUE[PIECE_TYPE(pc)][sq];  // 改变分值
@@ -323,8 +326,8 @@ void Position::movePiece(std::string mvStr) {
     }
 #endif
 
-    int_fast32_t preY = mvStr[1] - '0', preX = mvStr[0] - 'a';
-    int_fast32_t toY = mvStr[3] - '0', toX = mvStr[2] - 'a';
+    int_fast16_t preY = mvStr[1] - '0', preX = mvStr[0] - 'a';
+    int_fast16_t toY = mvStr[3] - '0', toX = mvStr[2] - 'a';
 
 #ifdef POS_DEBUG
     if (!(0 <= preY && preY <= 9 && 0 <= preX && preX <= 8)) {
@@ -340,8 +343,8 @@ void Position::movePiece(std::string mvStr) {
     }
 #endif
 
-    int_fast32_t src = COORD_XY(preX + X_FROM, preY + Y_FROM);
-    int_fast32_t dst = COORD_XY(toX + X_FROM, toY + Y_FROM);
+    int_fast16_t src = COORD_XY(preX + X_FROM, preY + Y_FROM);
+    int_fast16_t dst = COORD_XY(toX + X_FROM, toY + Y_FROM);
 
 #ifdef POS_DEBUG
     if (!this->squares[src] ||
@@ -352,7 +355,7 @@ void Position::movePiece(std::string mvStr) {
         return;
     }
 #endif
-    int_fast32_t pc = this->squares[src]; // 起点棋子
+    int_fast16_t pc = this->squares[src]; // 起点棋子
     this->addPiece(dst, this->squares[dst], DEL_PIECE); // 删除终点棋子
     this->addPiece(src, this->squares[src], DEL_PIECE); // 删除起点棋子
     this->addPiece(dst, pc); // 在终点添加起点棋子
@@ -363,40 +366,45 @@ void Position::movePiece(std::string mvStr) {
 }
 
 // 根据整型 mv 移动棋子；mv 见 MOVE() 函数
-void Position::movePiece(int_fast32_t mv) {
-    int_fast32_t src = SRC(mv), dst = DST(mv);
-    int_fast32_t pc = this->squares[src]; // 起点棋子 可能为 0
+void Position::movePiece(int_fast16_t mv) {
+    int_fast16_t src = SRC(mv), dst = DST(mv);
+    int_fast16_t pc = this->squares[src]; // 起点棋子 可能为 0
     this->addPiece(dst, this->squares[dst], DEL_PIECE); // 删除终点棋子
     this->addPiece(src, this->squares[src], DEL_PIECE); // 删除起点棋子
     this->addPiece(dst, pc); // 在终点添加起点棋子
 }
 
 // 撤销移动棋子
-void Position::undoMovePiece(int_fast32_t mv, int_fast32_t cap) {
+void Position::undoMovePiece(int_fast16_t mv, int_fast16_t cap) {
     this->movePiece(mv);
     this->addPiece(SRC(mv), cap);
 }
 
-// 得到下一个走法
-bool Position::nextMove() {
+// 得到下一个走法，无走法返回 0
+int_fast16_t Position::nextMove() {
     if (this->curMvCnt[this->distance] + 1 >= this->genNum[this->distance])
-        return false; // 达到最大着法数 返回 false 结束循环
+        return 0; // 达到最大着法数 返回 false 结束循环
     // 判断合法走法 ...
 
     this->curMvCnt[this->distance]++; // 增加为下一个走法的下标
-    return true;
+    return (this->mvsGen[this->distance] + this->curMvCnt[this->distance])->mv;
 }
 
 // 执行走法
-void Position::makeMove() {
+bool Position::makeMove() {
     auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
     this->movePiece(mvPtr->mv); // 执行走法
+    if (this->isChecked()) {
+        this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap);
+        return false;
+    }
 
     this->saveStatus();
     this->changeSide(); // 交换走子方
 
     this->distance++;
     this->moveNum++;
+    return true;
 }
 
 void Position::undoMakeMove() {
@@ -407,8 +415,102 @@ void Position::undoMakeMove() {
     this->rollBack();
 
     auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
-    int mv = MOVE(DST(mvPtr->mv), SRC(mvPtr->mv));
-    this->undoMovePiece(mv, mvPtr->cap); // 撤销走法
+    this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap); // 撤销走法
+}
+
+// 输棋分值 与深度有关
+int_fast16_t Position::mateValue() {
+    return -MATE_VALUE + this->distance;
+}
+
+
+#define CHECK_PIECE()                   \
+    {                                 \
+        src = src + delta;            \
+        while (src != dst) {          \
+            if (this->squares[src]) { \
+                checked = false;      \
+                break;                \
+            }                         \
+            src += delta;             \
+        }                             \
+    }
+// 判断是否被将军 是则返回 true
+int_fast16_t Position::isChecked() {
+    int_fast16_t sideTag = SIDE_TAG(this->sidePly);
+    int_fast16_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
+    int_fast16_t src, dst, delta, checked, i, j, k;
+    
+    // 1. 检查对将
+    src = this->pieces[sideTag + KING_FROM];
+    dst = this->pieces[oppSideTag + KING_FROM];
+    checked = true;
+    if (SAME_X(src, dst)) { // 相同列
+        delta = (dst > src) ? 16 : -16;
+        CHECK_PIECE();
+        if (checked) return true;
+    }
+    
+    // 2. 检查马
+    src = this->pieces[sideTag + KING_FROM];
+    for (j = 0; j < 4; j++) {
+        dst = src + ADVISOR_DELTA[j]; // 马腿
+        if (this->squares[dst] || !IN_BOARD(dst)) continue; // 越界 或者 马腿有棋子
+        for (k = 0; k < 2; k++) {
+            dst = src + KING_KNIGHT_DELTA[j][k];
+            if (!IN_BOARD(dst) || (this->squares[dst] & sideTag)) continue; // 越界或己方棋子
+            if (PIECE_TYPE(this->squares[dst]) == PIECE_KNIGHT) return true;
+        }
+    }
+
+    // 3. 检查车
+    for (i = ROOK_FROM; i <= ROOK_TO; i++) {
+        src = this->pieces[sideTag + KING_FROM];
+        dst = this->pieces[oppSideTag + i]; // 敌方 ROOK 位置
+        checked = true;
+        if (SAME_X(src, dst)) { // 同一列
+            delta = (dst > src) ? 16 : -16;
+            CHECK_PIECE();
+            if (checked) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            delta = (dst > src)? 1 : -1;
+            CHECK_PIECE();
+            if (checked) return true;
+        }
+    }
+
+    // 4. 检查炮
+    for (i = CANNON_FROM; i <= CANNON_TO; i++) {
+        src = this->pieces[sideTag + KING_FROM];
+        dst = this->pieces[oppSideTag + i]; // 敌方 CANNON 位置
+        checked = true;
+        if (SAME_X(src, dst)) { // 同一列
+            delta = (dst > src) ? 16 : -16;
+            CHECK_PIECE();
+            if (!checked) { // 将与炮中间有子
+                checked = true;
+                CHECK_PIECE(); // 判断子与炮之间是否还有子，若有 checked = false
+                if (checked) return true;
+            }
+        } else if (SAME_Y(src, dst)) { // 同一行
+            delta = (dst > src)? 1 : -1;
+            CHECK_PIECE();
+            if (!checked) { // 将与炮中间有子
+                checked = true;
+                CHECK_PIECE(); // 判断子与炮之间是否还有子，若有 checked = false
+                if (checked) return true;
+            }
+        }
+    }
+
+    // 5. 检查兵
+    src = this->pieces[sideTag + KING_FROM];
+    dst = SQ_FORWARED(src, this->sidePly); // 向前走一步
+    // 以下只需判断棋子类型即可，因为己方兵不可能到达九宫附近
+    if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN) return true;
+    if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
+    if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
+    return false;
 }
 
 /* 通过棋盘字符串初始化
@@ -427,9 +529,9 @@ void Position::undoMakeMove() {
   a b c d e f g h i
  */
 #ifdef POS_DEBUG // 仅 debug 模式下使用
-void Position::fromStringMap(std::string* s, int_fast32_t side) { // 9 - 0 行的字符串
+void Position::fromStringMap(std::string* s, int_fast16_t side) { // 9 - 0 行的字符串
     // pcRed 和 pcBlack 分别代表红方和黑方每个兵种即将占有的序号
-    int_fast32_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
+    int_fast16_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
     pcRed[0] = SIDE_TAG(0) + KING_FROM;
     pcRed[1] = SIDE_TAG(0) + ADVISOR_FROM;
     pcRed[2] = SIDE_TAG(0) + BISHOP_FROM;
@@ -437,14 +539,14 @@ void Position::fromStringMap(std::string* s, int_fast32_t side) { // 9 - 0 行�
     pcRed[4] = SIDE_TAG(0) + ROOK_FROM;
     pcRed[5] = SIDE_TAG(0) + CANNON_FROM;
     pcRed[6] = SIDE_TAG(0) + PAWN_FROM;
-    for (int_fast32_t i = 0; i < PIECE_EMPTY; i++)
+    for (int_fast16_t i = 0; i < PIECE_EMPTY; i++)
         pcBlack[i] = pcRed[i] + 16;
     // 清空棋盘
     this->clear();
 
     // 读取棋子
-    for (int_fast32_t j = 9, x = 0, y = 9, pcType; ~j; j--) {
-        for (int_fast32_t i = 2; i + 2 < (int_fast32_t)s[j].size(); i += 2) {
+    for (int_fast16_t j = 9, x = 0, y = 9, pcType; ~j; j--) {
+        for (int_fast16_t i = 2; i + 2 < (int_fast16_t)s[j].size(); i += 2) {
             x = i / 2 - 1 + X_FROM;
             y = j + Y_FROM;
             pcType = charToPt(toupper(s[j][i])); // 获得棋子类型
@@ -472,10 +574,10 @@ void Position::fromStringMap(std::string* s, int_fast32_t side) { // 9 - 0 行�
 void Position::debug() { // 仅 debug 模式下使用
     std::cout << "side: " << this->sidePly << std::endl;
     std::cout << "  a b c d e f g h i" << std::endl;
-    for (int_fast32_t y = Y_TO; y >= Y_FROM; y--) { // 行
+    for (int_fast16_t y = Y_TO; y >= Y_FROM; y--) { // 行
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
         std::cout << y - Y_FROM << "|";
-        for (int_fast32_t x = X_FROM; x <= X_TO; x++) { // 列
+        for (int_fast16_t x = X_FROM; x <= X_TO; x++) { // 列
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
             auto pc = this->squares[COORD_XY(x, y)]; // (x, y) 处棋子
             if (pc == 0) std::cout << "*" << " ";
