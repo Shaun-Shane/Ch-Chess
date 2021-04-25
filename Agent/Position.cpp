@@ -8,6 +8,8 @@
 
 Position pos;
 
+int_fast64_t historyTable[1 << 12] = {0};
+
 // 用于判断棋子是否在棋盘上
 const int_fast16_t _IN_BOARD[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -260,6 +262,20 @@ char ptToChar(int_fast16_t pt) {
     }
 }
 
+int_fast32_t historyIndex(int_fast16_t mv) {
+    return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv);
+}
+
+void setHistory(int_fast16_t mv, int_fast16_t depth) {
+    historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv)] += depth * depth;
+}
+
 std::string MOVE_TO_STR(int_fast16_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;
@@ -310,106 +326,11 @@ void Position::rollBack() {
     this->vlBlack = rbObjPtr->vlBlack;
 }
 
-// 通过FEN串初始化棋局
-void Position::fromFen(const char* fen) {
-    int_fast16_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
-    pcRed[0] = SIDE_TAG(0) + KING_FROM;
-    pcRed[1] = SIDE_TAG(0) + ADVISOR_FROM;
-    pcRed[2] = SIDE_TAG(0) + BISHOP_FROM;
-    pcRed[3] = SIDE_TAG(0) + KNIGHT_FROM;
-    pcRed[4] = SIDE_TAG(0) + ROOK_FROM;
-    pcRed[5] = SIDE_TAG(0) + CANNON_FROM;
-    pcRed[6] = SIDE_TAG(0) + PAWN_FROM;
-    for (int_fast16_t i = 0; i < PIECE_EMPTY; i++)
-        pcBlack[i] = pcRed[i] + 16;
-    this->clear();
-    
-    const char *lpFen;
-
-    lpFen = fen;
-    if (*lpFen == '\0') {
-    //SetIrrev();
-        return;
-    }
-  // 2. 读取棋盘上的棋子
-    int r = 9;  //行
-    int c = 0;  // 列
-    
-    while (*lpFen != ' ') 
-    {
-        if (*lpFen == '/') 
-        {
-            c = 0;
-            r--;
-            if (r < 0) 
-            {
-                break;
-            }
-        } 
-    else if (*lpFen >= '1' && *lpFen <= '9') 
-    {
-      for (int k = 0; k < (*lpFen - '0'); k ++) 
-      {
-        if (c > 8) 
-        {
-          break;
-        }
-        c++;
-      }
-    } 
-    else if (*lpFen >= 'A' && *lpFen <= 'Z') 
-    {
-      if (c <= 8) 
-      {
-        int_fast16_t pcType = charToPt(*lpFen);
-        
-        if (pcType < 7) 
-        {
-            int_fast16_t x= c + X_FROM;
-            int_fast16_t y= r + Y_FROM;
-            this->addPiece(COORD_XY(x, y), pcRed[pcType]);
-            pcRed[pcType]++;
-        }
-        c++;
-      }
-    } 
-    else if (*lpFen >= 'a' && *lpFen <= 'z') 
-    {
-      if (c <= 8) 
-      {
-        int_fast16_t pcType = charToPt(*lpFen + 'A' - 'a');
-        if (pcType < 7) 
-        {
-            int_fast16_t x= c + X_FROM;
-            int_fast16_t y= r + Y_FROM;
-            this->addPiece(COORD_XY(x, y), pcBlack[pcType]);
-            pcBlack[pcType]++;
-        }
-        c++;
-      }
-    }
-    lpFen++;
-    if (*lpFen == '\0') 
-    {
-      //SetIrrev();
-      return;
-    }
-  }
-  lpFen++;
-  // 3. 确定轮到哪方走
-  if (*lpFen == 'b') 
-  {
-    changeSide();
-  }
-   
-}
-
 // 根据 mvStr 字符串移动棋子
 void Position::movePiece(std::string mvStr) {
 #ifdef POS_DEBUG
     if (mvStr.size() != 4) {
-        std::cout << "wrong move input1!" << std::endl;
-        std::cout << mvStr<< std::endl;
+        std::cout << "wrong move input!" << std::endl;
         std::cout.flush();
         return;
     }
@@ -420,13 +341,13 @@ void Position::movePiece(std::string mvStr) {
 
 #ifdef POS_DEBUG
     if (!(0 <= preY && preY <= 9 && 0 <= preX && preX <= 8)) {
-        std::cout << "wrong move input2!" << std::endl;
+        std::cout << "wrong move input!" << std::endl;
         std::cout.flush();
         return;
     }
 
     if (!(0 <= toY && toY <= 9 && 0 <= toX && toX <= 8)) {
-        std::cout << "wrong move input3!" << std::endl;
+        std::cout << "wrong move input!" << std::endl;
         std::cout.flush();
         return;
     }
@@ -439,7 +360,7 @@ void Position::movePiece(std::string mvStr) {
     if (!this->squares[src] ||
         (this->squares[dst] &&
          !((this->squares[src] ^ this->squares[dst]) & 16))) {
-        std::cout << "wrong move input4!" << std::endl;
+        std::cout << "wrong move input!" << std::endl;
         std::cout.flush();
         return;
     }
@@ -450,7 +371,7 @@ void Position::movePiece(std::string mvStr) {
     this->addPiece(dst, pc); // 在终点添加起点棋子
 
 #ifdef POS_DEBUG
-    //this->debug();
+    this->debug();
 #endif
 }
 
@@ -600,6 +521,81 @@ int_fast16_t Position::isChecked() {
     if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
     if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
     return false;
+}
+
+// 通过FEN串初始化棋局
+void Position::fromFen(const char* fen) {
+    int_fast16_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
+    pcRed[0] = SIDE_TAG(0) + KING_FROM;
+    pcRed[1] = SIDE_TAG(0) + ADVISOR_FROM;
+    pcRed[2] = SIDE_TAG(0) + BISHOP_FROM;
+    pcRed[3] = SIDE_TAG(0) + KNIGHT_FROM;
+    pcRed[4] = SIDE_TAG(0) + ROOK_FROM;
+    pcRed[5] = SIDE_TAG(0) + CANNON_FROM;
+    pcRed[6] = SIDE_TAG(0) + PAWN_FROM;
+    for (int_fast16_t i = 0; i < PIECE_EMPTY; i++) pcBlack[i] = pcRed[i] + 16;
+    this->clear();
+
+    const char* lpFen;
+
+    lpFen = fen;
+    if (*lpFen == '\0') {
+        // SetIrrev();
+        return;
+    }
+    // 2. 读取棋盘上的棋子
+    int r = 9;  //行
+    int c = 0;  // 列
+
+    while (*lpFen != ' ') {
+        if (*lpFen == '/') {
+            c = 0;
+            r--;
+            if (r < 0) {
+                break;
+            }
+        } else if (*lpFen >= '1' && *lpFen <= '9') {
+            for (int k = 0; k < (*lpFen - '0'); k++) {
+                if (c > 8) {
+                    break;
+                }
+                c++;
+            }
+        } else if (*lpFen >= 'A' && *lpFen <= 'Z') {
+            if (c <= 8) {
+                int_fast16_t pcType = charToPt(*lpFen);
+
+                if (pcType < 7) {
+                    int_fast16_t x = c + X_FROM;
+                    int_fast16_t y = r + Y_FROM;
+                    this->addPiece(COORD_XY(x, y), pcRed[pcType]);
+                    pcRed[pcType]++;
+                }
+                c++;
+            }
+        } else if (*lpFen >= 'a' && *lpFen <= 'z') {
+            if (c <= 8) {
+                int_fast16_t pcType = charToPt(*lpFen + 'A' - 'a');
+                if (pcType < 7) {
+                    int_fast16_t x = c + X_FROM;
+                    int_fast16_t y = r + Y_FROM;
+                    this->addPiece(COORD_XY(x, y), pcBlack[pcType]);
+                    pcBlack[pcType]++;
+                }
+                c++;
+            }
+        }
+        lpFen++;
+        if (*lpFen == '\0') {
+            // SetIrrev();
+            return;
+        }
+    }
+    lpFen++;
+    // 3. 确定轮到哪方走
+    if (*lpFen == 'b') {
+        this->changeSide();
+    }
 }
 
 /* 通过棋盘字符串初始化

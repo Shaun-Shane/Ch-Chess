@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cctype>
 #include <cstring>
+#include <algorithm>
 
 #define POS_DEBUG
 
@@ -132,7 +133,15 @@ inline int_fast16_t OPP_SIDE_TAG(int_fast16_t side) { return 32 - (side << 4); }
 inline int_fast16_t OPP_SIDE(int_fast16_t sd) { return sd ^ 1; }
 
 // 着法对象
-struct MoveObj { int_fast16_t mv, vl, cap; /* 着法、分值、捕获的棋子*/ };
+struct MoveObj {
+    int_fast16_t mv, cap; // 着法、捕获的棋子
+    int_fast64_t vl; /*分值*/
+};
+
+// 着法比较函数
+inline bool operator<(const MoveObj& lhs, const MoveObj& rhs) {
+    return lhs.vl > rhs.vl;
+}
 
 // 得到着法起点
 inline int_fast16_t SRC(uint_fast16_t mv) { return mv & 255; }
@@ -144,6 +153,15 @@ inline int_fast16_t DST(uint_fast16_t mv) { return mv >> 8; }
 inline uint_fast16_t MOVE(int_fast16_t src, int_fast16_t dst) {
     return src + (dst << 8);
 }
+
+// 历史表
+extern int_fast64_t historyTable[1 << 12];
+
+// 更新历史表
+void setHistory(int_fast16_t mv, int_fast16_t depth);
+
+// 获得 mv 对应的历史表下标
+int_fast32_t historyIndex(int_fast16_t mv);
 
 // 棋子走法
 extern const int_fast16_t KING_DELTA[4];
@@ -188,9 +206,6 @@ struct Position {
     // 回到之前状态
     void rollBack();
 
-    // 通过FEN串初始化棋局
-    void fromFen(const char* fen);
-
     // 根据 mvStr 字符串移动棋子
     void movePiece(std::string mvStr);
 
@@ -213,7 +228,12 @@ struct Position {
 
     // 着法生成 见 genMoves.cpp 帅仕相马车炮兵
     void genAllMoves();
+    // 着法排序 见 genMoves.cpp
+    void sortMoves();
 
+
+    // 通过FEN串初始化棋局
+    void fromFen(const char* fen);
 #ifdef POS_DEBUG
     // 通过棋盘字符串初始化
     void fromStringMap(std::string* s, int_fast16_t side);
