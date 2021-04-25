@@ -105,9 +105,11 @@ int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta) {
     if (ischecked = pos.isChecked()) pos.genAllMoves(); // 被将军 生成全部着法
     else { // 不被将军，先进行局面评估是否能截断
         vl = evaluate();
-        if (vl > vlBest && vl >= beta) return vl;
-        vlBest = vl;
-        if (vl > alpha) alpha = vl;
+        if (vl > vlBest) {
+            if (vl >= beta) return vl;
+            vlBest = vl;
+            if (vl > alpha) alpha = vl;
+        }
         if (!ischecked) pos.genCapMoves(); // 将军未被威胁 仅生成吃子着法
     }
 

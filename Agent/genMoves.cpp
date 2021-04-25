@@ -121,14 +121,14 @@ void Position::sortMoves() {
 }
 
 // 添加 cap_mv 到 mvsGen 数组
-#define ADD_CAP_MOVE()                                                 \
-    {                                                                  \
-        if (!(this->squares[dst] & sideTag) && this->squares[dst]) {   \
-            mvsGenPtr->mv = MOVE(src, dst);                            \
-            mvsGenPtr->vl = historyTable[historyIndex(mvsGenPtr->mv)]; \
-            mvsGenPtr->cap = this->squares[dst];                       \
-            mvsGenPtr++, this->genNum[this->distance]++;               \
-        }                                                              \
+#define ADD_CAP_MOVE()                                                       \
+    {                                                                        \
+        if (!(this->squares[dst] & sideTag) && this->squares[dst]) {         \
+            mvsGenPtr->mv = MOVE(src, dst);                                  \
+            mvsGenPtr->vl = MVV_LVA(this->squares[dst], this->squares[src]); \
+            mvsGenPtr->cap = this->squares[dst];                             \
+            mvsGenPtr++, this->genNum[this->distance]++;                     \
+        }                                                                    \
     }
 
 // 生成吃子着法

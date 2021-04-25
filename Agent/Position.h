@@ -111,14 +111,18 @@ inline bool SAME_X(int src, int dst) {
  */
 extern const int_fast16_t pieceTypes[48];
 
-// 棋子的简单分值，只在简单比较时作参考
-extern const int_fast16_t simpleValues[48];
+// lva 价值
+extern const int_fast16_t lvaValues[48];
+// mvv 价值
+extern const int_fast16_t mvvValues[48];
 
 // 获得棋子类型
 inline int_fast16_t PIECE_TYPE(int_fast16_t pc) { return pieceTypes[pc]; }
 
 // 获得棋子简单分值
-inline int_fast16_t SIMPLE_VALUE(int_fast16_t pc) { return simpleValues[pc]; }
+inline int_fast16_t MVV_LVA(int_fast16_t pcV, int_fast16_t pcA) { 
+    return mvvValues[pcV] - lvaValues[pcA]; 
+}
 
 /* SIDE_TAG()，红方设为 16，黑方设为 32。
  * 用 "SIDE_TAG() + i" 选择棋子的类型， "i" 从 0 到 15 依次是：
@@ -140,7 +144,7 @@ struct MoveObj {
 
 // 着法比较函数
 inline bool operator<(const MoveObj& lhs, const MoveObj& rhs) {
-    if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
+    // if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
     return lhs.vl > rhs.vl;
 }
 
