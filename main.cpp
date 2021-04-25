@@ -53,6 +53,10 @@
 int main() {
     //ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr);
     static Agent ai;
+#ifdef POS_DEBUG
+    ai.run();
+#else 
     ai.run1();
+#endif
     return 0;
 }

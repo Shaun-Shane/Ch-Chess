@@ -56,7 +56,7 @@ std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
 }
 
 int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta) {
-    if (depth <= 0) return evalute();
+    if (depth <= 0) return searchQuiescence(alpha, beta);
     
     int_fast16_t vlBest(-MATE_VALUE), mvBest(0), mv, vl;
 
@@ -88,5 +88,38 @@ int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t bet
 
     if (vlBest > 0) setHistory(mvBest, depth);
 
+    return vlBest;
+}
+
+int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta) {
+    int_fast16_t vlBest(-MATE_VALUE), vl, ischecked;
+
+    // 1. beta 值比杀棋分数还小，直接返回杀气分数
+    vl = pos.mateValue();
+    if (vl >= beta) return vl;
+
+    // 2. 达到极限深度返回 暂时设为 10
+    if (pos.distance == 10) return evaluate();
+
+    // 3. 生成着法
+    if (ischecked = pos.isChecked()) pos.genAllMoves(); // 被将军 生成全部着法
+    else { // 不被将军，先进行局面评估是否能截断
+        vl = evaluate();
+        if (vl > vlBest && vl >= beta) return vl;
+        vlBest = vl;
+        if (vl > alpha) alpha = vl;
+        if (!ischecked) pos.genCapMoves(); // 将军未被威胁 仅生成吃子着法
+    }
+
+    while (pos.nextMove()) {
+        if (!pos.makeMove()) continue;
+        vl = -searchQuiescence(-beta, -alpha);
+        pos.undoMakeMove();
+
+        if (vl > vlBest && vl >= beta) return vl; // 截断
+        vlBest = vl;
+        if (vl > alpha) alpha = vl;
+    }
+    if (vlBest == -MATE_VALUE) return pos.mateValue();
     return vlBest;
 }
