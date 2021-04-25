@@ -140,6 +140,7 @@ struct MoveObj {
 
 // 着法比较函数
 inline bool operator<(const MoveObj& lhs, const MoveObj& rhs) {
+    if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
     return lhs.vl > rhs.vl;
 }
 
@@ -226,8 +227,10 @@ struct Position {
     // 判断是否被将军 是则返回 true
     int_fast16_t isChecked();
 
-    // 着法生成 见 genMoves.cpp 帅仕相马车炮兵
+    // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
     void genAllMoves();
+    // 吃子着法生成 见 genMoves.cpp
+    void genCapMoves();
     // 着法排序 见 genMoves.cpp
     void sortMoves();
 
