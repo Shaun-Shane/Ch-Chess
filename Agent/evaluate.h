@@ -3,6 +3,6 @@
 
 #include "Position.h"
 
-int_fast16_t evalute();
+int_fast16_t evaluate();
 
 #endif
