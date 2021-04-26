@@ -61,7 +61,7 @@ void Agent::run1() {
                 println("readyok");
                 break;
             case UCCI_COMM_POSITION:
-                BuildPos(pos, UcciComm);
+                buildpos(UcciComm);
                 break;
             case UCCI_COMM_GO:
                 result = searchMain();
