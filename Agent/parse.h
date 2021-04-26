@@ -3,18 +3,7 @@
 #include <string.h>
 #include <windows.h>
 #include <shlwapi.h>
-
-
-
-template <typename T> inline T MIN(T Arg1, T Arg2) {
-  return Arg1 < Arg2 ? Arg1 : Arg2;
-}
-
-template <typename T> inline T MAX(T Arg1, T Arg2) {
-  return Arg1 > Arg2 ? Arg1 : Arg2;
-}
-
-
+#include<algorithm>
 
 inline char *strcasestr(const char *sz1, const char *sz2) {
   return StrStrIA(sz1, sz2);
@@ -76,7 +65,7 @@ inline int str2digit(const char *sz, int nMin, int nMax)
   int nRet;
   if (sscanf(sz, "%d", &nRet) > 0) 
   {
-    return MIN(MAX(nRet, nMin), nMax);
+    return std::min(std::max(nRet, nMin), nMax);
   } 
   else 
   {
