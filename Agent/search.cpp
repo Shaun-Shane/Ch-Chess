@@ -78,9 +78,8 @@ int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t bet
         if (vl > vlBest) {
             vlBest = vl, mvBest = mv;
             if (vl >= beta) break;
+            if (vl > alpha) alpha = vl;
         }
-
-        if (vl > alpha) alpha = vl;
     }
 
     // 所有走法都走完了，找不到合法着法，输棋
@@ -98,8 +97,10 @@ int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta) {
     vl = pos.mateValue();
     if (vl >= beta) return vl;
 
-    // 2. 达到极限深度返回 暂时设为 10
-    if (pos.distance == 10) return evaluate();
+    // 检测重复局面...
+ 
+    // 2. 达到极限深度 QUIESC_LIMIT 返回估值
+    if (pos.distance == QUIESC_LIMIT) return evaluate();
 
     // 3. 生成着法
     if (ischecked = pos.isChecked()) pos.genAllMoves(); // 被将军 生成全部着法
@@ -118,9 +119,11 @@ int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta) {
         vl = -searchQuiescence(-beta, -alpha);
         pos.undoMakeMove();
 
-        if (vl > vlBest && vl >= beta) return vl; // 截断
-        vlBest = vl;
-        if (vl > alpha) alpha = vl;
+        if (vl > vlBest) {
+            if (vl >= beta) return vl;
+            vlBest = vl;
+            if (vl > alpha) alpha = vl;
+        }
     }
     if (vlBest == -MATE_VALUE) return pos.mateValue();
     return vlBest;

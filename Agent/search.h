@@ -15,6 +15,8 @@
 #include "evaluate.cpp"
 #endif
 
+constexpr int_fast32_t QUIESC_LIMIT = 32; // 静态搜索限定深度
+
 
 
 // 根节点搜索
