@@ -112,11 +112,50 @@ UcciCommEnum IdleLine(UcciCommStruct &UcciComm, bool bDebug)
 		return ParsePos(UcciComm, lp) ? UCCI_COMM_POSITION : UCCI_COMM_UNKNOWN;
 	}
  
-  else if (StrEqvSkip(lp, "go time ")) {
-		//bGoTime = true;
-		//UcciComm.nTime = Str2Digit(lp, 0, 2000000000);
-		return UCCI_COMM_GO;
-	}
+  else if (StrEqvSkip(lp, "go ")) {
+    UcciComm.bPonder = UcciComm.bDraw = false;
+    // �����жϵ�����"go"��"go ponder"����"go draw"
+    if (StrEqvSkip(lp, "ponder ")) {
+      UcciComm.bPonder = true;
+    } else if (StrEqvSkip(lp, "draw ")) {
+      UcciComm.bDraw = true;
+    }
+    // Ȼ���ж�˼��ģʽ
+    bGoTime = false;
+    if (false) {
+    } else if (StrEqvSkip(lp, "depth ")) {
+      UcciComm.Go = UCCI_GO_DEPTH;
+      UcciComm.nDepth = Str2Digit(lp, 0, UCCI_MAX_DEPTH);
+    } else if (StrEqvSkip(lp, "nodes ")) {
+      UcciComm.Go = UCCI_GO_NODES;
+      UcciComm.nDepth = Str2Digit(lp, 0, 2000000000);
+    } else if (StrEqvSkip(lp, "time ")) {
+      UcciComm.nTime = Str2Digit(lp, 0, 2000000000);
+      bGoTime = true;
+    // ���û��˵���ǹ̶���Ȼ����趨ʱ�ޣ��͹̶����Ϊ"UCCI_MAX_DEPTH"
+    } else {
+      UcciComm.Go = UCCI_GO_DEPTH;
+      UcciComm.nDepth = UCCI_MAX_DEPTH;
+    }
+    // ������趨ʱ�ޣ���Ҫ�ж���ʱ���ƻ��Ǽ�ʱ��
+    if (bGoTime) {
+      if (false) {
+      } else if (StrScanSkip(lp, " movestogo ")) {
+        UcciComm.Go = UCCI_GO_TIME_MOVESTOGO;
+        UcciComm.nMovesToGo = Str2Digit(lp, 1, 999);
+      } else if (StrScanSkip(lp, " increment ")) {
+        UcciComm.Go = UCCI_GO_TIME_INCREMENT;
+        UcciComm.nIncrement = Str2Digit(lp, 0, 999999);
+      // ���û��˵����ʱ���ƻ��Ǽ�ʱ�ƣ����趨Ϊ������1��ʱ����
+      } else {
+        UcciComm.Go = UCCI_GO_TIME_MOVESTOGO;
+        UcciComm.nMovesToGo = 1;
+      }
+    }
+    return UCCI_COMM_GO;
+
+  // 6. "stop"ָ��
+  }
 
   else if (StrEqv(lp, "quit")) 
   {
