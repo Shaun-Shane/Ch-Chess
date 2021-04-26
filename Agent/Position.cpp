@@ -550,10 +550,15 @@ int_fast16_t Position::isChecked() {
     // 5. 检查兵
     src = this->pieces[sideTag + KING_FROM];
     dst = SQ_FORWARED(src, this->sidePly); // 向前走一步
-    // 以下只需判断棋子类型即可，因为己方兵不可能到达九宫附近
-    if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN) return true;
-    if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
-    if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
+    if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN &&
+        !(this->squares[dst] & sideTag))
+        return true;
+    if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN &&
+        !(this->squares[src - 1] & sideTag))
+        return true;
+    if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN &&
+        !(this->squares[src + 1] & sideTag))
+        return true;
     return false;
 }
 
