@@ -20,7 +20,7 @@ std::pair<int_fast16_t, int_fast16_t> searchMain() {
 
     auto searchSt = clock();
     int_fast32_t bestVl, bestMv;
-    for (int_fast16_t depth = 3; ; depth++) {
+    for (int_fast16_t depth = 3; depth <= 32; depth++) {
         std::tie(bestVl, bestMv) = searchRoot(depth);
         std::cout << clock() - searchSt << std::endl;
         if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
