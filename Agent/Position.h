@@ -224,6 +224,14 @@ struct Position {
     void undoMakeMove();
     // 得到下一个走法，无走法返回 0
     int_fast16_t nextMove();
+    // 空着
+    void makeNullMove();
+    void undoMakeNullMove();
+
+    // 当前局面的优势是否足以进行空步搜索
+    int_fast16_t nullOkay();
+    // 空步搜索得到的分值是否有效
+    int_fast16_t nullSafe();
 
     // 输棋分值 与深度有关
     int_fast16_t mateValue();

@@ -437,6 +437,31 @@ void Position::undoMakeMove() {
     this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap); // 撤销走法
 }
 
+// 空着
+void Position::makeNullMove() {
+    this->saveStatus();
+    this->changeSide(); // 交换走子方
+    this->distance++;
+    this->moveNum++;
+}
+// 空着
+void Position::undoMakeNullMove() {
+    this->distance--;
+    this->moveNum--;
+    this->changeSide(); // 交换走子方
+    this->rollBack();
+}
+
+// 当前局面的优势是否足以进行空步搜索
+int_fast16_t Position::nullOkay() {
+    return (this->sidePly ? this->vlBlack : this->vlRed) > 400;
+}
+// 空步搜索得到的分值是否有效
+int_fast16_t Position::nullSafe() {
+    return (this->sidePly ? this->vlBlack : this->vlRed) > 200;
+}
+
+
 // 输棋分值 与深度有关
 int_fast16_t Position::mateValue() {
     return -MATE_VALUE + this->distance;
