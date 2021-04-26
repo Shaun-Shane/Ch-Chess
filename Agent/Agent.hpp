@@ -19,7 +19,7 @@ constexpr bool RED = 0, BLACK = 1;
 
 struct Agent {
     // 运行
-    void run();
+    void run_debug();
     void run1();
     // 初始化
     void init();
@@ -86,7 +86,7 @@ void Agent::run1()
 
 
 
-void Agent::run() {
+void Agent::run_debug() {
     while (true) {
         std::cout << "$ ";
         std::cout.flush();

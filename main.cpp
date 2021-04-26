@@ -57,7 +57,7 @@ int main() {
     static Agent ai;
 
 #ifndef USE_UCCI
-    ai.run();
+    ai.run_debug();
 #else 
     ai.run1();
 #endif

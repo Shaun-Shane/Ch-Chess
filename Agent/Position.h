@@ -107,10 +107,9 @@ inline bool SAME_X(int src, int dst) {
  *
  * 棋子序号从0到47，其中0到15不用，16到31表示红子，32到47表示黑子。
  * 帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
- * 判断棋子是红子 "pc < 32"，黑子 "pc >= 32"
+ * 判断棋子是红子 "pc < 32"，黑子 "pc >= 32 或者 & 16"
  */
 extern const int_fast16_t pieceTypes[48];
-
 // lva 价值
 extern const int_fast16_t lvaValues[48];
 // mvv 价值
