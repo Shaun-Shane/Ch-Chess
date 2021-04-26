@@ -36,29 +36,27 @@ struct Agent {
     // 己方颜色 默认红色
     bool aiSide = RED;
 };
-inline void PrintLn(const char *sz) 
-{
-  printf("%s\n", sz);
-  fflush(stdout);
+
+inline void PrintLn(const char* sz) {
+    printf("%s\n", sz);
+    fflush(stdout);
 }
-const char* const cszStartFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
+
+const char* const cszStartFen =
+    "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
 UcciCommStruct UcciComm;
-void Agent::run1()
-{
-    if (BootLine() != UCCI_COMM_UCCI) 
-    {
+
+void Agent::run1() {
+    if (BootLine() != UCCI_COMM_UCCI) {
         return;
     }
     int bDebug = true;
     int bQuit = false;
     pos.fromFen(cszStartFen);
     PrintLn("ucciok");
-    std::pair<int_fast16_t, int_fast16_t>result;
-    while(!bQuit)
-    {
-        switch (IdleLine(UcciComm, bDebug)) 
-        {
-            
+    std::pair<int_fast16_t, int_fast16_t> result;
+    while (!bQuit) {
+        switch (IdleLine(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
                 PrintLn("readyok");
                 break;
@@ -66,13 +64,14 @@ void Agent::run1()
                 BuildPos(pos, UcciComm);
                 break;
             case UCCI_COMM_GO:
-                result = searchRoot(6);
-                std::cout << "bestmove " << MOVE_TO_STR(result.second) << std::endl;
+                result = searchMain();
+                std::cout << "bestmove " << MOVE_TO_STR(result.second)
+                          << std::endl;
                 pos.movePiece(result.second);
                 fflush(stdout);
-                //pos.debug();
-                //std::cout.flush();
-				break;
+                // pos.debug();
+                // std::cout.flush();
+                break;
             case UCCI_COMM_QUIT:
                 bQuit = true;
                 break;
@@ -83,8 +82,6 @@ void Agent::run1()
     PrintLn("bye");
     return;
 }
-
-
 
 void Agent::run_debug() {
     while (true) {
@@ -99,7 +96,7 @@ void Agent::run_debug() {
             // printVl();
         } else if (opt == "turn") { // my turn
             auto st = clock();
-            auto result = searchRoot(6);
+            auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
             std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
             pos.movePiece(result.second);
