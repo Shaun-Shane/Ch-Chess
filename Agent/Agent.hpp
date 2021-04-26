@@ -37,7 +37,7 @@ struct Agent {
     bool aiSide = RED;
 };
 
-inline void PrintLn(const char* sz) {
+inline void println(const char* sz) {
     printf("%s\n", sz);
     fflush(stdout);
 }
@@ -47,21 +47,21 @@ const char* const cszStartFen =
 UcciCommStruct UcciComm;
 
 void Agent::run1() {
-    if (BootLine() != UCCI_COMM_UCCI) {
+    if (bootline() != UCCI_COMM_UCCI) {
         return;
     }
     int bDebug = true;
     int bQuit = false;
     pos.fromFen(cszStartFen);
-    PrintLn("ucciok");
+    println("ucciok");
     std::pair<int_fast16_t, int_fast16_t> result;
     while (!bQuit) {
-        switch (IdleLine(UcciComm, bDebug)) {
+        switch (idleline(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
-                PrintLn("readyok");
+                println("readyok");
                 break;
             case UCCI_COMM_POSITION:
-                BuildPos(pos, UcciComm);
+                buildpos(UcciComm);
                 break;
             case UCCI_COMM_GO:
                 result = searchMain();
@@ -79,7 +79,7 @@ void Agent::run1() {
                 break;
         }
     }
-    PrintLn("bye");
+    println("bye");
     return;
 }
 

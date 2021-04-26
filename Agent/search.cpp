@@ -2,7 +2,7 @@
 #include "Position.h"
 #include "ucci.hpp"
 
-void BuildPos(Position &pos, const UcciCommStruct &UcciComm) {
+void buildpos(const UcciCommStruct &UcciComm) {
     int i, mv;
     pos.fromFen(UcciComm.szFenStr);
     for (i = 0; i < UcciComm.nMoveNum; i++) {
@@ -21,8 +21,11 @@ std::pair<int_fast16_t, int_fast16_t> searchMain() {
     auto searchSt = clock();
     int_fast32_t bestVl, bestMv;
     for (int_fast16_t depth = 3; depth <= 32; depth++) {
+       
         std::tie(bestVl, bestMv) = searchRoot(depth);
+         #ifndef USE_UCCI
         std::cout << clock() - searchSt << std::endl;
+        #endif
         if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
            // std::cout << "depth: " << depth << std::endl;
             break;
