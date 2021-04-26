@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "parse.h"
-
+#include<algorithm>
 #ifndef UCCI_H
 #define UCCI_H
 
@@ -15,6 +15,7 @@ union UcciCommStruct {
     const char *szFenStr;     // 
     int nMoveNum;             
     char (*lpdwMovesCoord)[5]; //记录moves后的走法
+    int nTime;
   };
 
 };
@@ -29,14 +30,14 @@ const int LINE_INPUT_MAX_CHAR = 8192;
 static char szFen[LINE_INPUT_MAX_CHAR];
 static char dwCoordList[MAX_MOVE_NUM][5];
 
-static bool ParsePos(UcciCommStruct &UcciComm, char *lp) {
+static bool parsepos(UcciCommStruct &UcciComm, char *lp) {
   int i;
-  if (StrEqvSkip(lp, "fen ")) 
+  if (streqvskip(lp, "fen ")) 
   {
     strcpy(szFen, lp);
     UcciComm.szFenStr = szFen;
   } 
-  else if (StrEqv(lp, "startpos")) 
+  else if (streqv(lp, "startpos")) 
   {
     UcciComm.szFenStr = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
   } 
@@ -46,10 +47,10 @@ static bool ParsePos(UcciCommStruct &UcciComm, char *lp) {
   }
   
   UcciComm.nMoveNum = 0;
-  if (StrScanSkip(lp, " moves ")) 
+  if (strscanskip(lp, " moves ")) 
   {
     *(lp - strlen(" moves ")) = '\0';
-    UcciComm.nMoveNum = MIN((int) (strlen(lp) + 1) / 5, MAX_MOVE_NUM); 
+    UcciComm.nMoveNum = std::min((int) (strlen(lp) + 1) / 5, MAX_MOVE_NUM); 
     for (i = 0; i < UcciComm.nMoveNum; i ++) 
     {
       dwCoordList[i][0] = *lp; 
@@ -64,7 +65,7 @@ static bool ParsePos(UcciCommStruct &UcciComm, char *lp) {
   return true;
 }
 
-UcciCommEnum BootLine(void) 
+UcciCommEnum bootline(void) 
 {
   char szLineStr[LINE_INPUT_MAX_CHAR];
   
@@ -72,7 +73,7 @@ UcciCommEnum BootLine(void)
   {
     Sleep(1);
   }
-  if (StrEqv(szLineStr, "ucci")) 
+  if (streqv(szLineStr, "ucci")) 
   {
     return UCCI_COMM_UCCI;
   } 
@@ -82,7 +83,7 @@ UcciCommEnum BootLine(void)
   }
 }
 
-UcciCommEnum IdleLine(UcciCommStruct &UcciComm, bool bDebug) 
+UcciCommEnum idleline(UcciCommStruct &UcciComm, bool bDebug) 
 {
   char szLineStr[LINE_INPUT_MAX_CHAR];
   char *lp;
@@ -102,99 +103,29 @@ UcciCommEnum IdleLine(UcciCommStruct &UcciComm, bool bDebug)
   if (false) 
   {
   } 
-  else if (StrEqv(lp, "isready")) 
+  else if (streqv(lp, "isready")) 
   {
     return UCCI_COMM_ISREADY;
   } 
 
-  else if (StrEqvSkip(lp, "position ")) 
+  else if (streqvskip(lp, "position ")) 
   {
-		return ParsePos(UcciComm, lp) ? UCCI_COMM_POSITION : UCCI_COMM_UNKNOWN;
+		return parsepos(UcciComm, lp) ? UCCI_COMM_POSITION : UCCI_COMM_UNKNOWN;
 	}
  
-  else if (StrEqvSkip(lp, "go ")) {
-    UcciComm.bPonder = UcciComm.bDraw = false;
-    // �����жϵ�����"go"��"go ponder"����"go draw"
-    if (StrEqvSkip(lp, "ponder ")) {
-      UcciComm.bPonder = true;
-    } else if (StrEqvSkip(lp, "draw ")) {
-      UcciComm.bDraw = true;
-    }
-    // Ȼ���ж�˼��ģʽ
-    bGoTime = false;
-    if (false) {
-    } else if (StrEqvSkip(lp, "depth ")) {
-      UcciComm.Go = UCCI_GO_DEPTH;
-      UcciComm.nDepth = Str2Digit(lp, 0, UCCI_MAX_DEPTH);
-    } else if (StrEqvSkip(lp, "nodes ")) {
-      UcciComm.Go = UCCI_GO_NODES;
-      UcciComm.nDepth = Str2Digit(lp, 0, 2000000000);
-    } else if (StrEqvSkip(lp, "time ")) {
-      UcciComm.nTime = Str2Digit(lp, 0, 2000000000);
-      bGoTime = true;
-    // ���û��˵���ǹ̶���Ȼ����趨ʱ�ޣ��͹̶����Ϊ"UCCI_MAX_DEPTH"
-    } else {
-      UcciComm.Go = UCCI_GO_DEPTH;
-      UcciComm.nDepth = UCCI_MAX_DEPTH;
-    }
-    // ������趨ʱ�ޣ���Ҫ�ж���ʱ���ƻ��Ǽ�ʱ��
-    if (bGoTime) {
-      if (false) {
-      } else if (StrScanSkip(lp, " movestogo ")) {
-        UcciComm.Go = UCCI_GO_TIME_MOVESTOGO;
-        UcciComm.nMovesToGo = Str2Digit(lp, 1, 999);
-      } else if (StrScanSkip(lp, " increment ")) {
-        UcciComm.Go = UCCI_GO_TIME_INCREMENT;
-        UcciComm.nIncrement = Str2Digit(lp, 0, 999999);
-      // ���û��˵����ʱ���ƻ��Ǽ�ʱ�ƣ����趨Ϊ������1��ʱ����
-      } else {
-        UcciComm.Go = UCCI_GO_TIME_MOVESTOGO;
-        UcciComm.nMovesToGo = 1;
-      }
-    }
+  else if (streqvskip(lp, "go")) {
+    
+   if (streqvskip(lp, " time ")) 
+   {
+      UcciComm.nTime = str2digit(lp, 0, 2000000000);
+   }
     return UCCI_COMM_GO;
-
-  // 6. "stop"ָ��
   }
+  
 
-  else if (StrEqv(lp, "quit")) 
+  else if (streqv(lp, "quit")) 
   {
     return UCCI_COMM_QUIT;
-  } 
-  else 
-  {
-    return UCCI_COMM_UNKNOWN;
-  }
-}
-
-UcciCommEnum BusyLine(UcciCommStruct &UcciComm, bool bDebug) 
-{
-  char szLineStr[LINE_INPUT_MAX_CHAR];
-  char *lp;
-  if (std::cin.getline(szLineStr, LINE_INPUT_MAX_CHAR)) 
-  {
-    if (bDebug) 
-    {
-      printf("info busyline [%s]\n", szLineStr);
-      fflush(stdout);
-    }
-    if (false) 
-    {
-    } 
-    else if (StrEqv(szLineStr, "isready")) 
-    {
-      return UCCI_COMM_ISREADY;
-    } 
-    else if (StrEqv(szLineStr, "quit")) 
-    {
-      return UCCI_COMM_QUIT;
-    } 
-    else 
-    {
-      lp = szLineStr;
-      return UCCI_COMM_UNKNOWN;
-      
-    }
   } 
   else 
   {
