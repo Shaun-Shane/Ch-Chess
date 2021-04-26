@@ -2,7 +2,7 @@
 #include "Position.h"
 #include "ucci.hpp"
 
-void BuildPos(Position &pos, const UcciCommStruct &UcciComm) {
+void buildpos(const UcciCommStruct &UcciComm) {
     int i, mv;
     pos.fromFen(UcciComm.szFenStr);
     for (i = 0; i < UcciComm.nMoveNum; i++) {
