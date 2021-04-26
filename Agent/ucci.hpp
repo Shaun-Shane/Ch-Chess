@@ -10,14 +10,11 @@ const int UCCI_MAX_DEPTH = 32;
 enum UcciCommEnum {UCCI_COMM_UNKNOWN, UCCI_COMM_UCCI, UCCI_COMM_ISREADY, UCCI_COMM_POSITION,  UCCI_COMM_GO,  UCCI_COMM_QUIT}; 
 
 
-union UcciCommStruct {
-  struct {
+struct UcciCommStruct {
     const char *szFenStr;     // 
     int nMoveNum;             
     char (*lpdwMovesCoord)[5]; //记录moves后的走法
     int nTime;
-  };
-
 };
 
 
