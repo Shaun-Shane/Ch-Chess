@@ -1,14 +1,10 @@
 #include <stdio.h>
 #include "parse.h"
 #include<algorithm>
-#ifndef UCCI_H
-#define UCCI_H
 
 const int UCCI_MAX_DEPTH = 32;
 
-
 enum UcciCommEnum {UCCI_COMM_UNKNOWN, UCCI_COMM_UCCI, UCCI_COMM_ISREADY, UCCI_COMM_POSITION,  UCCI_COMM_GO,  UCCI_COMM_QUIT}; 
-
 
 struct UcciCommStruct {
     const char *szFenStr;     // 
@@ -17,17 +13,14 @@ struct UcciCommStruct {
     int nTime;
 };
 
-
-#endif
-
-
 const int MAX_MOVE_NUM = 1024;
 
 const int LINE_INPUT_MAX_CHAR = 8192;
 static char szFen[LINE_INPUT_MAX_CHAR];
 static char dwCoordList[MAX_MOVE_NUM][5];
 
-static bool parsepos(UcciCommStruct &UcciComm, char *lp) {
+static bool parsepos(UcciCommStruct &UcciComm, char *lp) 
+{
   int i;
   if (streqvskip(lp, "fen ")) 
   {
@@ -62,26 +55,22 @@ static bool parsepos(UcciCommStruct &UcciComm, char *lp) {
   return true;
 }
 
-UcciCommEnum bootline(void) 
-{
+UcciCommEnum bootline(void) {
   char szLineStr[LINE_INPUT_MAX_CHAR];
   
   while (!std::cin.getline(szLineStr, LINE_INPUT_MAX_CHAR)) 
   {
     Sleep(1);
   }
-  if (streqv(szLineStr, "ucci")) 
-  {
+  if (streqv(szLineStr, "ucci")) {
     return UCCI_COMM_UCCI;
   } 
-  else 
-  {
+  else {
     return UCCI_COMM_UNKNOWN;
   }
 }
 
-UcciCommEnum idleline(UcciCommStruct &UcciComm, bool bDebug) 
-{
+UcciCommEnum idleline(UcciCommStruct &UcciComm, bool bDebug) {
   char szLineStr[LINE_INPUT_MAX_CHAR];
   char *lp;
   int i;
@@ -119,7 +108,6 @@ UcciCommEnum idleline(UcciCommStruct &UcciComm, bool bDebug)
     return UCCI_COMM_GO;
   }
   
-
   else if (streqv(lp, "quit")) 
   {
     return UCCI_COMM_QUIT;
