@@ -24,11 +24,11 @@ std::pair<int_fast16_t, int_fast16_t> searchMain() {
         std::tie(bestVl, bestMv) = searchRoot(depth);
         std::cout << clock() - searchSt << std::endl;
         if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
-            std::cout << "depth: " << depth << std::endl;
+           // std::cout << "depth: " << depth << std::endl;
             break;
         }
         if (bestVl > WIN_VALUE || bestVl < -WIN_VALUE) {
-            std::cout << "depth: " << depth << std::endl;
+           // std::cout << "depth: " << depth << std::endl;
             break;
         }
     }
