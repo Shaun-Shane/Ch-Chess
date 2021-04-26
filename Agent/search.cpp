@@ -12,10 +12,27 @@ void BuildPos(Position &pos, const UcciCommStruct &UcciComm) {
     }
 }
 
+time_t searchSt;
+
 // 搜索主函数
 std::pair<int_fast16_t, int_fast16_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
-    return searchRoot(6);
+
+    auto searchSt = clock();
+    int_fast32_t bestVl, bestMv;
+    for (int_fast16_t depth = 3; ; depth++) {
+        std::tie(bestVl, bestMv) = searchRoot(depth);
+        std::cout << clock() - searchSt << std::endl;
+        if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
+            std::cout << "depth: " << depth << std::endl;
+            break;
+        }
+        if (bestVl > WIN_VALUE || bestVl < -WIN_VALUE) {
+            std::cout << "depth: " << depth << std::endl;
+            break;
+        }
+    }
+    return {bestVl, bestMv};
 }
 
 std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
@@ -26,8 +43,7 @@ std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
         if (!pos.makeMove()) continue;
 
         // 判断能否吃掉敌方棋子; 注意 makeMove 后 sidePly 变化
-        if (!pos.pieces[SIDE_TAG(pos.sidePly) + KING_FROM]) { 
-            std::cout << "mate" << std::endl;
+        if (!pos.pieces[SIDE_TAG(pos.sidePly) + KING_FROM]) {
             pos.undoMakeMove();
             return {MATE_VALUE, mv};
         }
@@ -55,10 +71,22 @@ std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
     return {vlBest, mvBest}; // 返回最佳分值与走法
 }
 
-int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta) {
+int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta, bool noNull) {
     if (depth <= 0) return searchQuiescence(alpha, beta);
     
     int_fast16_t vlBest(-MATE_VALUE), mvBest(0), mv, vl;
+
+    // 空着裁剪
+    if (!noNull && pos.nullOkay() && !pos.isChecked()){
+        pos.makeNullMove();
+        vl = -searchFull(depth - NULL_DEPTH - 1, -beta, -beta + 1, true);
+        pos.undoMakeNullMove();
+        if (vl >= beta) { // 存在截断
+            if (pos.nullSafe()) return vl;
+            if (searchFull(depth - NULL_DEPTH, alpha, beta, true) >= beta)
+                return vl;
+        }
+    }
 
     pos.genAllMoves();
     while ((mv = pos.nextMove())) {
