@@ -553,12 +553,9 @@ int_fast16_t Position::isChecked() {
     if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN &&
         !(this->squares[dst] & sideTag))
         return true;
-    if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN &&
-        !(this->squares[src - 1] & sideTag))
-        return true;
-    if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN &&
-        !(this->squares[src + 1] & sideTag))
-        return true;
+    // 两侧的兵只不需要判断颜色
+    if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
+    if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
     return false;
 }
 

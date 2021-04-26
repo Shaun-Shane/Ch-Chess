@@ -1,5 +1,6 @@
 #define VSC_DEBUG
 #define USE_UCCI
+
 #ifdef VSC_DEBUG
 #define fastcall __attribute__((optimize("-O3")))
 #pragma GCC optimize(2)
@@ -49,8 +50,6 @@
 
 #include "agent\Agent.hpp"
 #include "windows.h"
-
-// #define USE_UCCI
 
 int main() {
     //ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr);

@@ -23,10 +23,10 @@ std::pair<int_fast16_t, int_fast16_t> searchMain() {
     for (int_fast16_t depth = 3; depth <= 32; depth++) {
        
         std::tie(bestVl, bestMv) = searchRoot(depth);
-         #ifndef USE_UCCI
-        std::cout << clock() - searchSt << std::endl;
+        #ifndef USE_UCCI
+            std::cout << clock() - searchSt << std::endl;
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
+        if (clock() - searchSt > CLOCKS_PER_SEC / 5) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
