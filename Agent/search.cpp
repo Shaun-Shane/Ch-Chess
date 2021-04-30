@@ -4,11 +4,13 @@
 time_t searchSt;
 
 // 搜索主函数
-std::pair<int_fast16_t, int_fast16_t> searchMain() {
+std::pair<int_fast16_t, uint_fast16_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
 
     auto searchSt = clock();
-    int_fast32_t bestVl, bestMv;
+    int_fast16_t bestVl;
+    uint_fast16_t bestMv;
+
     for (int_fast16_t depth = 3; depth <= 32; depth++) {
        
         std::tie(bestVl, bestMv) = searchRoot(depth);
@@ -27,8 +29,9 @@ std::pair<int_fast16_t, int_fast16_t> searchMain() {
     return {bestVl, bestMv};
 }
 
-std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
-    int_fast16_t vlBest(-MATE_VALUE), mvBest(0), mv, vl;
+std::pair<int_fast16_t, uint_fast16_t> searchRoot(int_fast16_t depth) {
+    int_fast16_t vlBest(-MATE_VALUE), vl;
+    uint_fast16_t mvBest(0), mv;
     
     pos.genAllMoves();
     while ((mv = pos.nextMove())) {
@@ -66,7 +69,8 @@ std::pair<int_fast16_t, int_fast16_t> searchRoot(int_fast16_t depth) {
 int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta, bool noNull) {
     if (depth <= 0) return searchQuiescence(alpha, beta);
     
-    int_fast16_t vlBest(-MATE_VALUE), mvBest(0), mv, vl;
+    int_fast16_t vlBest(-MATE_VALUE), vl;
+    uint_fast16_t mvBest(0), mv;
 
     // 空着裁剪
     if (!noNull && pos.nullOkay() && !pos.isChecked()){

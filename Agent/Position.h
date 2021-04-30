@@ -137,7 +137,8 @@ inline int_fast16_t OPP_SIDE(int_fast16_t sd) { return sd ^ 1; }
 
 // 着法对象
 struct MoveObj {
-    int_fast16_t mv, cap; // 着法、捕获的棋子
+    uint_fast16_t mv; // 着法
+    int_fast16_t cap; // 捕获的棋子
     int_fast64_t vl; /*分值*/
 };
 
@@ -162,10 +163,10 @@ inline uint_fast16_t MOVE(int_fast16_t src, int_fast16_t dst) {
 extern int_fast64_t historyTable[1 << 12];
 
 // 更新历史表
-void setHistory(int_fast16_t mv, int_fast16_t depth);
+void setHistory(uint_fast16_t mv, int_fast16_t depth);
 
 // 获得 mv 对应的历史表下标
-int_fast32_t historyIndex(int_fast16_t mv);
+int_fast32_t historyIndex(uint_fast16_t mv);
 
 // 棋子走法
 extern const int_fast16_t KING_DELTA[4];
@@ -187,7 +188,7 @@ int_fast16_t charToPt(char c);
  */
 char ptToChar(int_fast16_t pt);
 
-std::string MOVE_TO_STR(int_fast16_t mv);
+std::string MOVE_TO_STR(uint_fast16_t mv);
 
 // 回滚对象
 struct RollbackObj {
@@ -214,9 +215,9 @@ struct Position {
     void movePiece(std::string mvStr);
 
     // 根据整型 mv 移动棋子；mv 见 MOVE() 函数
-    void movePiece(int_fast16_t mv);
+    void movePiece(uint_fast16_t mv);
     // 撤销移动棋子
-    void undoMovePiece(int_fast16_t mv, int_fast16_t cap);
+    void undoMovePiece(uint_fast16_t mv, int_fast16_t cap);
 
     // 执行走法
     bool makeMove();

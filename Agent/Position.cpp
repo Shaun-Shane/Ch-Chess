@@ -271,21 +271,21 @@ char ptToChar(int_fast16_t pt) {
     }
 }
 
-int_fast32_t historyIndex(int_fast16_t mv) {
+int_fast32_t historyIndex(uint_fast16_t mv) {
     return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
              PIECE_TYPE(pos.squares[SRC(mv)]))
             << 8) +
            DST(mv);
 }
 
-void setHistory(int_fast16_t mv, int_fast16_t depth) {
+void setHistory(uint_fast16_t mv, int_fast16_t depth) {
     historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
              PIECE_TYPE(pos.squares[SRC(mv)]))
             << 8) +
            DST(mv)] += depth * depth;
 }
 
-std::string MOVE_TO_STR(int_fast16_t mv) {
+std::string MOVE_TO_STR(uint_fast16_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;
     int toX = GET_X(dst) - X_FROM, toY = GET_Y(dst) - Y_FROM;
@@ -385,7 +385,7 @@ void Position::movePiece(std::string mvStr) {
 }
 
 // 根据整型 mv 移动棋子；mv 见 MOVE() 函数
-void Position::movePiece(int_fast16_t mv) {
+void Position::movePiece(uint_fast16_t mv) {
     int_fast16_t src = SRC(mv), dst = DST(mv);
     int_fast16_t pc = this->squares[src]; // 起点棋子 可能为 0
     this->addPiece(dst, this->squares[dst], DEL_PIECE); // 删除终点棋子
@@ -394,7 +394,7 @@ void Position::movePiece(int_fast16_t mv) {
 }
 
 // 撤销移动棋子
-void Position::undoMovePiece(int_fast16_t mv, int_fast16_t cap) {
+void Position::undoMovePiece(uint_fast16_t mv, int_fast16_t cap) {
     this->movePiece(mv);
     this->addPiece(SRC(mv), cap);
 }

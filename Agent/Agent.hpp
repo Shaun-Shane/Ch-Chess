@@ -57,7 +57,7 @@ void Agent::run1() {
     int bQuit = false;
     pos.fromFen(cszStartFen);
     println("ucciok");
-    std::pair<int_fast16_t, int_fast16_t> result;
+    std::pair<int_fast16_t, uint_fast16_t> result;
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
