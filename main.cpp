@@ -1,5 +1,7 @@
+// 使用命令行编译时注释掉
 #define VSC_DEBUG
-#define USE_UCCI
+// 使用 ucci 时注释掉
+// #define USE_UCCI
 
 #ifdef VSC_DEBUG
 #define fastcall __attribute__((optimize("-O3")))
