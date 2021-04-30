@@ -17,18 +17,18 @@
 #include "evaluate.cpp"
 #endif
 
-constexpr int_fast32_t QUIESC_LIMIT = 64; // 静态搜索限定深度
+constexpr int32_t QUIESC_LIMIT = 64; // 静态搜索限定深度
 
-constexpr int_fast32_t NULL_DEPTH = 2; // 空着减去的深度
+constexpr int32_t NULL_DEPTH = 2; // 空着减去的深度
 
-std::pair<int_fast16_t, uint_fast16_t> searchMain();
+std::pair<int32_t, int32_t> searchMain();
 
 // 根节点搜索
-std::pair<int_fast16_t, uint_fast16_t> searchRoot(int_fast16_t depth);
+std::pair<int32_t, int32_t> searchRoot(int32_t depth);
 
 // minMax 搜索
-int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta, bool noNull = false);
+int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull = false);
 
-int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta);
+int32_t searchQuiescence(int32_t alpha, int32_t beta);
 
 #endif

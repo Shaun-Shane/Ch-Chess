@@ -57,7 +57,7 @@ void Agent::run1() {
     int bQuit = false;
     pos.fromFen(cszStartFen);
     println("ucciok");
-    std::pair<int_fast16_t, uint_fast16_t> result;
+    std::pair<int32_t, int32_t> result;
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
@@ -132,7 +132,7 @@ void Agent::set() {
     std::string s[10], tmp;
     std::cin.ignore('\n');
     getline(std::cin, tmp);
-    for (int_fast16_t j = 9; j >= 0; j--) getline(std::cin, s[j]);
+    for (int32_t j = 9; j >= 0; j--) getline(std::cin, s[j]);
     getline(std::cin, tmp);
     pos.fromStringMap(s, aiSide);
     pos.debug();

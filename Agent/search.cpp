@@ -4,14 +4,14 @@
 time_t searchSt;
 
 // 搜索主函数
-std::pair<int_fast16_t, uint_fast16_t> searchMain() {
+std::pair<int32_t, int32_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
 
     auto searchSt = clock();
-    int_fast16_t bestVl;
-    uint_fast16_t bestMv;
+    int32_t bestVl;
+    int32_t bestMv;
 
-    for (int_fast16_t depth = 3; depth <= 32; depth++) {
+    for (int32_t depth = 3; depth <= 32; depth++) {
        
         std::tie(bestVl, bestMv) = searchRoot(depth);
         #ifndef USE_UCCI
@@ -29,9 +29,9 @@ std::pair<int_fast16_t, uint_fast16_t> searchMain() {
     return {bestVl, bestMv};
 }
 
-std::pair<int_fast16_t, uint_fast16_t> searchRoot(int_fast16_t depth) {
-    int_fast16_t vlBest(-MATE_VALUE), vl;
-    uint_fast16_t mvBest(0), mv;
+std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
+    int32_t vlBest(-MATE_VALUE), vl;
+    int32_t mvBest(0), mv;
     
     pos.genAllMoves();
     while ((mv = pos.nextMove())) {
@@ -66,11 +66,11 @@ std::pair<int_fast16_t, uint_fast16_t> searchRoot(int_fast16_t depth) {
     return {vlBest, mvBest}; // 返回最佳分值与走法
 }
 
-int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t beta, bool noNull) {
+int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (depth <= 0) return searchQuiescence(alpha, beta);
     
-    int_fast16_t vlBest(-MATE_VALUE), vl;
-    uint_fast16_t mvBest(0), mv;
+    int32_t vlBest(-MATE_VALUE), vl;
+    int32_t mvBest(0), mv;
 
     // 空着裁剪
     if (!noNull && pos.nullOkay() && !pos.isChecked()){
@@ -114,8 +114,8 @@ int_fast16_t searchFull(int_fast16_t depth, int_fast16_t alpha, int_fast16_t bet
     return vlBest;
 }
 
-int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta) {
-    int_fast16_t vlBest(-MATE_VALUE), vl, ischecked;
+int32_t searchQuiescence(int32_t alpha, int32_t beta) {
+    int32_t vlBest(-MATE_VALUE), vl, ischecked;
 
     // 1. beta 值比杀棋分数还小，直接返回杀气分数
     vl = pos.mateValue();

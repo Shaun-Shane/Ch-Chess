@@ -12,8 +12,8 @@
     }
 
 void Position::genAllMoves() {
-    int_fast16_t sideTag = SIDE_TAG(this->sidePly);
-    int_fast16_t src, dst, i, j, k, delta;
+    int32_t sideTag = SIDE_TAG(this->sidePly);
+    int32_t src, dst, i, j, k, delta;
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
@@ -133,8 +133,8 @@ void Position::sortMoves() {
 
 // 生成吃子着法
 void Position::genCapMoves() {
-    int_fast16_t sideTag = SIDE_TAG(this->sidePly);
-    int_fast16_t src, dst, i, j, k, delta;
+    int32_t sideTag = SIDE_TAG(this->sidePly);
+    int32_t src, dst, i, j, k, delta;
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
