@@ -1,16 +1,5 @@
 #include "search.h"
 #include "Position.h"
-#include "ucci.hpp"
-
-void buildpos(const UcciCommStruct &UcciComm) {
-    int i, mv;
-    pos.fromFen(UcciComm.szFenStr);
-    for (i = 0; i < UcciComm.nMoveNum; i++) {
-        std::string mvStr = UcciComm.lpdwMovesCoord[i];
-        pos.movePiece(mvStr);
-        pos.changeSide();
-    }
-}
 
 time_t searchSt;
 
@@ -134,7 +123,7 @@ int_fast16_t searchQuiescence(int_fast16_t alpha, int_fast16_t beta) {
     if (pos.distance == QUIESC_LIMIT) return evaluate();
 
     // 3. 生成着法
-    if (ischecked = pos.isChecked()) pos.genAllMoves(); // 被将军 生成全部着法
+    if ((ischecked = pos.isChecked())) pos.genAllMoves(); // 被将军 生成全部着法
     else { // 不被将军，先进行局面评估是否能截断
         vl = evaluate();
         if (vl > vlBest) {
