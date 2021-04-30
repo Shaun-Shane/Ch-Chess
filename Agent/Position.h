@@ -52,6 +52,10 @@ constexpr int32_t X_TO = 11;
 extern const int32_t _IN_BOARD[256];
 // 用于判断棋子是否在九宫内
 extern const int32_t _IN_FORT[256];
+// 将仕象的合法走法判断数组
+extern const int32_t KAB_LEGAL_SPAN[512];
+// 辅助数组，用于校验马的走法是否合理。如果合理，返回对应马脚的方向；否则，返回0
+extern const int32_t _KNIGHT_PIN[512];
 
 // 根据 x, y 返回序号 0 ~ 255
 inline int32_t COORD_XY(int32_t x, int32_t y) {
@@ -77,6 +81,32 @@ inline bool IN_BOARD(int32_t sq) {
 inline bool IN_FORT(int32_t sq) {
     return _IN_FORT[sq];
 }
+
+// 校验将（帅）的走法
+inline bool KING_SPAN(int32_t src, int32_t dst) {
+    return KAB_LEGAL_SPAN[dst - src + 256] == 1;
+}
+
+// 检验士（仕）的走法
+inline bool ADVISOR_SPAN(int32_t src, int32_t dst) {
+    return KAB_LEGAL_SPAN[dst - src + 256] == 2;
+}
+
+// 校验象（相）的走法
+inline bool BISHOP_SPAN(int32_t src, int32_t dst) {
+    return KAB_LEGAL_SPAN[dst - src + 256] == 3;
+}
+
+// 象眼位置
+inline int32_t BISHOP_PIN(int32_t src, int32_t dst) {
+    return (src + dst) >> 1;
+}
+
+// 如果马的走法合法，则返回相应马脚的位置，否则返回 src。
+inline int32_t KNIGHT_PIN(int32_t src, int32_t dst) {
+    return src + _KNIGHT_PIN[dst - src + 256];
+}
+
 
 // 根据位置 sq 判断是否过河，未过河返回 true；否则返回 false
 inline bool SELF_SIDE(int32_t sq, int32_t side) {
@@ -238,6 +268,7 @@ struct Position {
     int32_t mateValue();
     // 判断是否被将军 是则返回 true
     int32_t isChecked();
+    // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
 
     // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
