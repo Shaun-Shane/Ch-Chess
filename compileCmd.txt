@@ -1,1 +1,1 @@
-g++ -O4 -std=c++11 -Wall "-Wl,--stack=268435456" main.cpp agent\Position.cpp agent\Agent.hpp agent\genMoves.cpp agent\evaluate.cpp agent\search.cpp -o main.exe
+g++ -O4 -std=c++11 -Wall "-Wl,--stack=268435456" main.cpp agent\Position.cpp agent\genMoves.cpp agent\evaluate.cpp agent\search.cpp -o main.exe
