@@ -1,16 +1,17 @@
 #ifndef AGENT_HPP
 #define AGENT_HPP
 
-// VSC_DEBUG 在 search.h 中也有
+// VSC_DEBUG 在 main.cpp Agent.hpp 中也有
 #define VSC_DEBUG
 
 #ifndef VSC_DEBUG
+#include "ucci.hpp"
 #include "search.h"
 #else
 #include "search.cpp"
-#include<iostream>
-#include<string>
-
+#include "ucci.hpp"
+#include <iostream>
+#include <string>
 #endif
 
 #include <ctime>
@@ -30,6 +31,8 @@ struct Agent {
     // 设置局面
     void set();
 
+    void buildPos(const UcciCommStruct &UcciComm);
+
     // debug 双方分数
     void printVl();
 
@@ -37,14 +40,14 @@ struct Agent {
     bool aiSide = RED;
 };
 
-inline void println(const char* sz) {
-    printf("%s\n", sz);
-    fflush(stdout);
+void Agent::buildPos(const UcciCommStruct &UcciComm) {
+    pos.fromFen(UcciComm.szFenStr);
+    for (int i = 0; i < UcciComm.nMoveNum; i++) {
+        std::string mvStr = UcciComm.lpdwMovesCoord[i];
+        pos.movePiece(mvStr);
+        pos.changeSide();
+    }
 }
-
-const char* const cszStartFen =
-    "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
-UcciCommStruct UcciComm;
 
 void Agent::run1() {
     if (bootline() != UCCI_COMM_UCCI) {
@@ -61,7 +64,7 @@ void Agent::run1() {
                 println("readyok");
                 break;
             case UCCI_COMM_POSITION:
-                buildpos(UcciComm);
+                this->buildPos(UcciComm);
                 break;
             case UCCI_COMM_GO:
                 result = searchMain();
