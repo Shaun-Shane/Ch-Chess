@@ -2,6 +2,7 @@
 #define POSITION_CPP
 
 #include "Position.h"
+#include "assert.h"
 #ifdef POS_DEBUG
 #include "windows.h"
 #endif
@@ -631,12 +632,12 @@ int32_t Position::isChecked() {
 
 int32_t Position::isLegalMove(int32_t mv) {
     int32_t src = SRC(mv); // 获取着法起点
-    int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
+    int32_t sideTag = SIDE_TAG(this->sidePly);
 
-    // 起点不是己方棋子
-    if (this->squares[src] & oppSideTag) return false;
+    // 起点不是己方棋子或无子
+    if (!(this->squares[src] & sideTag)) return false;
 
-    int32_t sideTag = SIDE_TAG(this->sidePly), dst = DST(mv);
+    int32_t dst = DST(mv);
     // 终点是己方棋子
     if (this->squares[dst] & sideTag) return false;
 
@@ -644,13 +645,12 @@ int32_t Position::isLegalMove(int32_t mv) {
     switch(PIECE_TYPE(this->squares[src])) { // 判断己方棋子类型
         case PIECE_KING: // 将（帅）
             return IN_FORT(dst) && KING_SPAN(src, dst);
-        case PIECE_ADVISOR:
+        case PIECE_ADVISOR: // 仕（仕）
             return IN_FORT(dst) && ADVISOR_SPAN(src, dst);
-        case PIECE_BISHOP:
-            return SELF_SIDE(src, this->sidePly) &&
-                   SELF_SIDE(dst, this->sidePly) && BISHOP_SPAN(src, dst) &&
+        case PIECE_BISHOP: // 象（相）
+            return SELF_SIDE(dst, this->sidePly) && BISHOP_SPAN(src, dst) &&
                    !this->squares[BISHOP_PIN(src, dst)];
-        case PIECE_KNIGHT:
+        case PIECE_KNIGHT: // 马
             pin = KNIGHT_PIN(src, dst);
             return pin != src && !this->squares[pin];
         case PIECE_ROOK:
@@ -681,6 +681,7 @@ int32_t Position::isLegalMove(int32_t mv) {
             return dst == SQ_FORWARED(src, this->sidePly);
         default: return false;
     }
+    assert(false); // shouldn't reach here
     return false;
 }
 
