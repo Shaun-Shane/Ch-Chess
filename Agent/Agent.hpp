@@ -1,9 +1,6 @@
 #ifndef AGENT_HPP
 #define AGENT_HPP
 
-// VSC_DEBUG 在 main.cpp Agent.hpp 中也有
-#define VSC_DEBUG
-
 #ifndef VSC_DEBUG
 #include "ucci.hpp"
 #include "search.h"

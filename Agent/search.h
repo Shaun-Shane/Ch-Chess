@@ -5,9 +5,6 @@
 #include <ctime>
 #include <tuple>
 
-// VSC_DEBUG 在 main.cpp Agent.hpp 中也有
-#define VSC_ DEBUG
-
 #ifndef VSC_DEBUG
 #include "Position.h"
 #include "evaluate.h"
