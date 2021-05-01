@@ -17,10 +17,10 @@ std::pair<int32_t, int32_t> searchMain() {
         #ifndef USE_UCCI
             std::cout << depth << " " << clock() - searchSt << std::endl;
         #endif
-        // if (clock() - searchSt > CLOCKS_PER_SEC / 4) {
-        //    // std::cout << "depth: " << depth << std::endl;
-        //     break;
-        // }
+        if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
+           // std::cout << "depth: " << depth << std::endl;
+            break;
+        }
         if (bestVl > WIN_VALUE || bestVl < -WIN_VALUE) {
            // std::cout << "depth: " << depth << std::endl;
             break;
