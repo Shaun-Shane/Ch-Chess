@@ -1,17 +1,92 @@
 #include "Position.h"
 
-// 添加 mv 到 mvsGen 数组
-#define ADD_MOVE()                                                  \
+enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER};
+
+void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
+    this->mvHash[this->distance] = 0;
+    this->mvKiller1[this->distance] = 0;
+    this->mvKiller2[this->distance] = 0; // 清空置换表 杀手着法
+    this->phase[this->distance] = HASH; // 从置换表启发开始
+
+    if (this->isChecked()) { // 处于被将军状态 禁用杀手启发
+        this->phase[this->distance] = PHASE::OTHER;
+        this->genAllMoves(mvHash); // 生成全部着法， mvHash 优先级最大
+    } else { // 未被将军 才考虑从 phase-HASH 开始启发
+        this->mvHash[this->distance] = mvHash;
+        this->mvKiller1[this->distance] = killerTable[this->distance][0];
+        this->mvKiller2[this->distance] = killerTable[this->distance][1];
+    }
+}
+
+// 仅添加一个着法，用于置换表、杀手启发
+#define ADD_ONE_MOVE()                                              \
     {                                                               \
-        if (!(this->squares[dst] & sideTag)) {                      \
-            mvsGenPtr->mv = MOVE(src, dst);                         \
-            mvsGenPtr->vl = historyTable[historyIndex(mvsGenPtr->mv)]; \
-            mvsGenPtr->cap = this->squares[dst];                    \
-            mvsGenPtr++, this->genNum[this->distance]++;            \
-        }                                                           \
+        this->curMvCnt[this->distance] = 0;                         \
+        this->mvsGen[this->distance]->mv = mv;                      \
+        this->mvsGen[this->distance]->cap = this->squares[DST(mv)]; \
+    }
+// 得到下一个走法，无走法返回 0
+int32_t Position::nextMove() {
+    int32_t mv = 0;
+    switch (this->phase[this->distance]) {
+        case HASH:
+            this->phase[this->distance] = KILLER_1;
+            mv = this->mvHash[this->distance];
+            if (mv /*&& legalmove ? */) {
+                ADD_ONE_MOVE();
+                return mv;
+            }
+        // 2. 第一个杀手着法
+        case KILLER_1:
+            this->phase[this->distance] = KILLER_2;
+            mv = this->mvKiller1[this->distance];
+            if (mv != this->mvHash[this->distance] && mv &&
+                this->isLegalMove(mv)) {
+                    ADD_ONE_MOVE();
+                    return mv;
+                }
+        // 3. 第二个杀手着法
+        case KILLER_2:
+            this->phase[this->distance] = GEN_MOVES;
+            mv = this->mvKiller2[this->distance];
+            if (mv != this->mvHash[this->distance] && mv &&
+                this->isLegalMove(mv)) {
+                    ADD_ONE_MOVE();
+                    return mv;
+                }
+
+        // 4. 生成所有着法，完成后立即进入下一阶段；
+        case GEN_MOVES:
+            this->phase[this->distance] = OTHER;
+            this->genAllMoves(); // 着法生成 + 历史表启发
+        default:
+            while (this->curMvCnt[this->distance] + 1 < this->genNum[this->distance]) {
+                this->curMvCnt[this->distance]++;
+                mv = (this->mvsGen[this->distance] + this->curMvCnt[this->distance])->mv;
+                if (mv != this->mvHash[this->distance] &&
+                    mv != this->mvKiller1[this->distance] &&
+                    mv != this->mvKiller2[this->distance])
+                    return mv;
+            }
     }
 
-void Position::genAllMoves() {
+    return 0; // 没有着法 返回 0
+}
+
+// 添加 mv 到 mvsGen 数组
+#define ADD_MOVE()                                                           \
+    {                                                                        \
+        if (!(this->squares[dst] & sideTag)) {                               \
+            mvsGenPtr->mv = MOVE(src, dst);                                  \
+            mvsGenPtr->vl = (mvsGenPtr->mv == mvHash)                        \
+                                ? 1e18 /*置换表着法分值最大*/       \
+                                : historyTable[historyIndex(mvsGenPtr->mv)]; \
+            mvsGenPtr->cap = this->squares[dst];                             \
+            mvsGenPtr++, this->genNum[this->distance]++;                     \
+        }                                                                    \
+    }
+
+void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
     int32_t sideTag = SIDE_TAG(this->sidePly);
     int32_t src, dst, i, j, k, delta;
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1

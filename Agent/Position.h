@@ -191,9 +191,13 @@ inline int32_t MOVE(int32_t src, int32_t dst) {
 
 // 历史表
 extern int_fast64_t historyTable[1 << 12];
+// 杀手着法表
+extern int32_t killerTable[MAX_DISTANCE][2];
 
 // 更新历史表
 void setHistory(int32_t mv, int32_t depth);
+// 更新杀手着法表
+void setKillerTable(int32_t mv);
 
 // 获得 mv 对应的历史表下标
 int_fast32_t historyIndex(int32_t mv);
@@ -271,11 +275,13 @@ struct Position {
     // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
 
+    // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
+    void generateMoves(int32_t mvHash = 0);
     // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
-    void genAllMoves();
+    void genAllMoves(int32_t mvHash = 0);
     // 吃子着法生成 见 genMoves.cpp
     void genCapMoves();
-    // 着法排序 见 genMoves.cpp
+    // 对着法排序 见 genMoves.cpp
     void sortMoves();
 
 
@@ -299,6 +305,9 @@ struct Position {
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
+    int32_t phase[MAX_DISTANCE]; // 启发阶段
+    int32_t mvHash[MAX_DISTANCE]; // 置换表着法
+    int32_t mvKiller1[MAX_DISTANCE], mvKiller2[MAX_DISTANCE]; // 两个杀手着法
     MoveObj mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
 };
 

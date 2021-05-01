@@ -10,6 +10,7 @@
 Position pos;
 
 int_fast64_t historyTable[1 << 12] = {0};
+int32_t killerTable[MAX_DISTANCE][2] = {0};
 
 // 用于判断棋子是否在棋盘上
 const int32_t _IN_BOARD[256] = {
@@ -358,6 +359,14 @@ void setHistory(int32_t mv, int32_t depth) {
            DST(mv)] += depth * depth;
 }
 
+void setKillerTable(int32_t mv) {
+    auto tablePtr = killerTable[pos.distance];
+    if (tablePtr[0] != mv) {
+        tablePtr[1] = tablePtr[0]; // newKillerMove -> 0, 0 -> 1
+        tablePtr[0] = mv;
+    }
+}
+
 std::string MOVE_TO_STR(int32_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;
@@ -470,16 +479,6 @@ void Position::movePiece(int32_t mv) {
 void Position::undoMovePiece(int32_t mv, int32_t cap) {
     this->movePiece(mv);
     this->addPiece(SRC(mv), cap);
-}
-
-// 得到下一个走法，无走法返回 0
-int32_t Position::nextMove() {
-    if (this->curMvCnt[this->distance] + 1 >= this->genNum[this->distance])
-        return 0; // 达到最大着法数 返回 false 结束循环
-    // 判断合法走法 ...
-
-    this->curMvCnt[this->distance]++; // 增加为下一个走法的下标
-    return (this->mvsGen[this->distance] + this->curMvCnt[this->distance])->mv;
 }
 
 // 执行走法
