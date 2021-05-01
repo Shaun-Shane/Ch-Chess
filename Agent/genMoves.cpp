@@ -1,12 +1,14 @@
 #include "Position.h"
 
-enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER};
-
-void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
+void Position::resetMvKillerHash() {
     this->mvHash[this->distance] = 0;
     this->mvKiller1[this->distance] = 0;
     this->mvKiller2[this->distance] = 0; // 清空置换表 杀手着法
-    this->phase[this->distance] = HASH; // 从置换表启发开始
+    this->phase[this->distance] = PHASE::HASH; // 从置换表启发开始
+}
+
+void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
+    this->resetMvKillerHash();
 
     if (this->isChecked()) { // 处于被将军状态 禁用杀手启发
         this->phase[this->distance] = PHASE::OTHER;
@@ -22,23 +24,23 @@ void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
 #define ADD_ONE_MOVE()                                              \
     {                                                               \
         this->curMvCnt[this->distance] = 0;                         \
-        this->mvsGen[this->distance]->mv = mv;                      \
-        this->mvsGen[this->distance]->cap = this->squares[DST(mv)]; \
+        this->mvsGen[this->distance][0].mv = mv;                      \
+        this->mvsGen[this->distance][0].cap = this->squares[DST(mv)]; \
     }
 // 得到下一个走法，无走法返回 0
 int32_t Position::nextMove() {
     int32_t mv = 0;
     switch (this->phase[this->distance]) {
-        case HASH:
-            this->phase[this->distance] = KILLER_1;
+        case PHASE::HASH:
+            this->phase[this->distance] = PHASE::KILLER_1;
             mv = this->mvHash[this->distance];
             if (mv /*&& legalmove ? */) {
                 ADD_ONE_MOVE();
                 return mv;
             }
         // 2. 第一个杀手着法
-        case KILLER_1:
-            this->phase[this->distance] = KILLER_2;
+        case PHASE::KILLER_1:
+            this->phase[this->distance] = PHASE::KILLER_2;
             mv = this->mvKiller1[this->distance];
             if (mv != this->mvHash[this->distance] && mv &&
                 this->isLegalMove(mv)) {
@@ -46,8 +48,8 @@ int32_t Position::nextMove() {
                     return mv;
                 }
         // 3. 第二个杀手着法
-        case KILLER_2:
-            this->phase[this->distance] = GEN_MOVES;
+        case PHASE::KILLER_2:
+            this->phase[this->distance] = PHASE::GEN_MOVES;
             mv = this->mvKiller2[this->distance];
             if (mv != this->mvHash[this->distance] && mv &&
                 this->isLegalMove(mv)) {
@@ -56,8 +58,8 @@ int32_t Position::nextMove() {
                 }
 
         // 4. 生成所有着法，完成后立即进入下一阶段；
-        case GEN_MOVES:
-            this->phase[this->distance] = OTHER;
+        case PHASE::GEN_MOVES:
+            this->phase[this->distance] = PHASE::OTHER;
             this->genAllMoves(); // 着法生成 + 历史表启发
         default:
             while (this->curMvCnt[this->distance] + 1 < this->genNum[this->distance]) {

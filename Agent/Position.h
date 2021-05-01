@@ -33,6 +33,8 @@ constexpr int32_t CANNON_TO = 10;   // 炮
 constexpr int32_t PAWN_FROM = 11;   // 卒
 constexpr int32_t PAWN_TO = 15;     // 卒
 
+enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
+
 constexpr bool DEL_PIECE = true;   // 添加棋子
 
 constexpr int32_t MATE_VALUE = 1e4; // 将军
@@ -283,6 +285,8 @@ struct Position {
     void genCapMoves();
     // 对着法排序 见 genMoves.cpp
     void sortMoves();
+    // 将 mvKiller, mvHash 清零
+    void resetMvKillerHash();
 
 
     // 通过FEN串初始化棋局
