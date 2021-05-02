@@ -1,7 +1,7 @@
 // !使用命令行编译时注释掉! 使用 code runner 不要注释!
-// #define VSC_DEBUG
+#define VSC_DEBUG
 // 使用 ucci 时注释掉
-#define USE_UCCI
+// #define USE_UCCI
 
 #ifdef VSC_DEBUG
 #define fastcall __attribute__((optimize("-O3")))
@@ -54,6 +54,7 @@
 #include "windows.h"
 
 int main() {
+    // freopen("debug.out", "w", stdout);
     //ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr);
     static Agent ai;
 

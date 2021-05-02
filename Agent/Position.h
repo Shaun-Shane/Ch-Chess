@@ -38,7 +38,9 @@ enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
 constexpr bool DEL_PIECE = true;   // 添加棋子
 
 constexpr int32_t MATE_VALUE = 1e4; // 将军
-constexpr int32_t WIN_VALUE = MATE_VALUE - 120; // 赢棋分值 高于 WIN_VALUE 都是赢棋
+constexpr int32_t BAN_VALUE = MATE_VALUE - 120; // 长将判负
+constexpr int32_t WIN_VALUE = MATE_VALUE - 180; // 赢棋分值 高于 WIN_VALUE 都是赢棋
+constexpr int32_t DRAW_VALUE = 20; // 和棋时返回分数 取负值
 
 constexpr int32_t MAX_LIST_SIZE = 1024;  // 最大回滚着法数
 constexpr int32_t MAX_GER_NUM = 128; // 最多可能的着法数 不会超过 128
@@ -174,6 +176,11 @@ struct Moves {
     int_fast64_t vl; /*分值*/
 };
 
+struct MoveList {
+    int32_t mv, cap, chk; // 着法 吃的子 是否将军
+    uint32_t key; // zobrist 键值
+};
+
 // 着法比较函数
 inline bool operator<(const Moves& lhs, const Moves& rhs) {
     // if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
@@ -261,12 +268,21 @@ struct Position {
     // 空步搜索得到的分值是否有效
     int32_t nullSafe();
 
+    // 重复局面分数
+    int32_t repValue(int32_t vl);
+    // 长将判负分值 与深度有关
+    int32_t banValue();
+    // 和棋分值
+    int32_t drawValue();
     // 输棋分值 与深度有关
     int32_t mateValue();
     // 判断是否被将军 是则返回 true
     int32_t isChecked();
     // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
+    // 判断重复局面
+    int32_t repStatus(int32_t repCount = 1);
+    
 
     // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
     void generateMoves(int32_t mvHash = 0);
@@ -296,6 +312,7 @@ struct Position {
     int32_t vlRed, vlBlack; // 红方、黑方估值
 
     int32_t moveNum, distance; // 着法数、搜索步数
+    MoveList moveList[MAX_DISTANCE << 2]; // 着法列标
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标

@@ -2,6 +2,8 @@
 
 time_t searchSt;
 
+bool debug = false;
+
 // 搜索主函数
 std::pair<int32_t, int32_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
@@ -15,7 +17,7 @@ std::pair<int32_t, int32_t> searchMain() {
     if (bestMv && pos.isLegalMove(bestMv))
         return {0, bestMv};
 
-    for (int32_t depth = 4; depth <= 32; depth++) {
+    for (int32_t depth = 4; depth <= 7; depth++) {
         std::tie(bestVl, bestMv) = searchRoot(depth);
         #ifndef USE_UCCI
             std::cout << depth << " " << clock() - searchSt << std::endl;
@@ -61,7 +63,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
             vlBest = vl, mvBest = mv;
             if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) { // 增加走法随机性
                 vlBest += ((rand() - RAND_MAX) % 7);
-                // ...
+                vlBest = (vlBest == pos.drawValue()) ? vlBest - 1 : vlBest;
             }
         }
     }
@@ -70,8 +72,12 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
 
 int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (depth <= 0) return searchQuiescence(alpha, beta);
+
+    // 检查重复局面
+    int32_t vl = pos.repStatus();
+    if (vl) return pos.repValue(vl);
     
-    int32_t vlBest(-MATE_VALUE), vl;
+    int32_t vlBest(-MATE_VALUE);
     int32_t mvBest(0), mv;
 
     // 空着裁剪
@@ -124,9 +130,11 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
     if (vl >= beta) return vl;
 
     // 检测重复局面...
+    vl = pos.repStatus();
+    if (vl) return pos.repValue(vl);
  
     // 2. 达到极限深度 QUIESC_LIMIT 返回估值
-    if (pos.distance == 32) return evaluate();
+    if (pos.distance == QUIESC_LIMIT ) return evaluate();
 
     // 3. 生成着法
     if ((ischecked = pos.isChecked())) { // 被将军 生成全部着法

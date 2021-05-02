@@ -487,8 +487,14 @@ bool Position::makeMove() {
         return false;
     }
 
+    auto mvListPtr = this->moveList + this->moveNum; // 将走法加入到mvList
+    mvListPtr->mv = mvPtr->mv;
+    mvListPtr->cap = mvPtr->cap;
+    mvListPtr->key = this->zobrist->getCurKey();
+
     this->changeSide(); // 交换走子方
 
+    mvListPtr->chk = this->isChecked();
     this->distance++;
     this->moveNum++;
     return true;
@@ -506,6 +512,12 @@ void Position::undoMakeMove() {
 
 // 空着
 void Position::makeNullMove() {
+    auto mvListPtr = this->moveList + this->moveNum; // 将走法加入到mvList
+    mvListPtr->mv = 0;
+    mvListPtr->cap = 0;
+    mvListPtr->key = this->zobrist->getCurKey();
+    mvListPtr->chk = 0;
+
     this->changeSide(); // 交换走子方
     this->distance++;
     this->moveNum++;
@@ -526,9 +538,21 @@ int32_t Position::nullSafe() {
     return (this->sidePly ? this->vlBlack : this->vlRed) > 200;
 }
 
+int32_t Position::repValue(int32_t vl) {
+    int32_t tmp = ((vl & 0b10) ? this->banValue() : 0) + ((vl & 0b100) ? -this->banValue() : 0);
+    return tmp ? tmp : this->drawValue();
+}
+// 长将判负分值 与深度有关
+int32_t Position::banValue() {
+    return -BAN_VALUE + this->distance;
+}
 // 输棋分值 与深度有关
 int32_t Position::mateValue() {
     return -MATE_VALUE + this->distance;
+}
+
+int32_t Position::drawValue() {
+    return (this->distance & 1) ? DRAW_VALUE : -DRAW_VALUE;
 }
 
 #define CHECK_PIECE()                   \
@@ -675,6 +699,30 @@ int32_t Position::isLegalMove(int32_t mv) {
     }
     assert(false); // shouldn't reach here
     return false;
+}
+
+int32_t Position::repStatus(int32_t repCount) {
+    bool selfSide = false;
+    bool perpetualCheck = true;
+    bool oppPerpetualCheck = true;
+    int32_t i = this->moveNum - 1;
+    while (i >= 0 && this->moveList[i].mv && !this->moveList[i].cap) {
+        if (selfSide) {
+            perpetualCheck &= this->moveList[i].chk;
+            if (this->moveList[i].key == this->zobrist->getCurKey()) {
+                repCount--;
+                if (repCount == 0) {
+                    return 1 + (perpetualCheck ? 2 : 0) +
+                           (oppPerpetualCheck ? 4 : 0);
+                }
+            }
+        } else {
+            oppPerpetualCheck &= this->moveList[i].chk;
+        }
+        selfSide ^= true;
+        i--;
+    }
+    return 0;
 }
 
 // 通过FEN串初始化棋局
