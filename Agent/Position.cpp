@@ -15,6 +15,7 @@
 #endif
 
 Position pos;
+Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
 

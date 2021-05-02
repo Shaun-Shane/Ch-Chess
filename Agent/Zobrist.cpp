@@ -1,7 +1,5 @@
 #include "Zobrist.h"
 
-Zobrist zob;
-
 int binarySearchLib(const Library lib[], unsigned int lock, int n) {
     int l = 0, r = n - 1;
     while (l <= r) {
