@@ -2,23 +2,27 @@
 
 time_t searchSt;
 
+bool debug = false;
+
 // 搜索主函数
 std::pair<int32_t, int32_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
+    memset(killerTable, 0, sizeof(killerTable));
+    pos.distance = 0;
+
     auto searchSt = clock();
-    int32_t bestVl;
-    int32_t bestMv;
-    int mv = 0;
-    mv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
-    if (mv && pos.isLegalMove(mv))
-        return {0, mv};
-    for (int32_t depth = 3; depth <= 32; depth++) {
-       
+    int32_t bestVl, bestMv;
+
+    bestMv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
+    if (bestMv && pos.isLegalMove(bestMv))
+        return {0, bestMv};
+
+    for (int32_t depth = 4; depth <= 32; depth++) {
         std::tie(bestVl, bestMv) = searchRoot(depth);
         #ifndef USE_UCCI
-            std::cout << clock() - searchSt << std::endl;
+            std::cout << depth << " " << clock() - searchSt << std::endl;
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
+        if (clock() - searchSt > CLOCKS_PER_SEC / 5) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
@@ -31,13 +35,13 @@ std::pair<int32_t, int32_t> searchMain() {
 }
 
 std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
-    int32_t vlBest(-MATE_VALUE), vl(0);
+    int32_t vlBest(-MATE_VALUE), vl;
     int32_t mvBest(0), mv;
-    pos.genAllMoves();
+    
+    pos.generateMoves();
     while ((mv = pos.nextMove())) {
-        if (!pos.makeMove()) continue;
-
-        // 判断能否吃掉敌方棋子; 注意 makeMove 后 sidePly 变化
+        if (!pos.makeMove(mv)) continue;
+        // 判断能否吃掉敌方将军; 注意 makeMove 后 sidePly 变化
         if (!pos.pieces[SIDE_TAG(pos.sidePly) + KING_FROM]) {
             pos.undoMakeMove();
             return {MATE_VALUE, mv};
@@ -59,7 +63,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
             vlBest = vl, mvBest = mv;
             if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) { // 增加走法随机性
                 vlBest += ((rand() - RAND_MAX) % 7);
-                // ...
+                vlBest = (vlBest == pos.drawValue()) ? vlBest - 1 : vlBest;
             }
         }
     }
@@ -68,8 +72,12 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
 
 int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (depth <= 0) return searchQuiescence(alpha, beta);
+
+    // 检查重复局面
+    int32_t vl = pos.repStatus();
+    if (vl) return pos.repValue(vl);
     
-    int32_t vlBest(-MATE_VALUE), vl;
+    int32_t vlBest(-MATE_VALUE);
     int32_t mvBest(0), mv;
 
     // 空着裁剪
@@ -84,9 +92,9 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
         }
     }
 
-    pos.genAllMoves();
+    pos.generateMoves();
     while ((mv = pos.nextMove())) {
-       if (!pos.makeMove()) continue;
+       if (!pos.makeMove(mv)) continue;
 
         // PVS
         if (vlBest == -MATE_VALUE) {
@@ -109,37 +117,46 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     // 所有走法都走完了，找不到合法着法，输棋
     if (vlBest == -MATE_VALUE) return pos.mateValue();
 
-    if (vlBest > 0) setHistory(mvBest, depth);
+    if (vlBest > 0) setHistory(mvBest, depth), setKillerTable(mvBest);
 
     return vlBest;
 }
 
 int32_t searchQuiescence(int32_t alpha, int32_t beta) {
-    int32_t vlBest(-MATE_VALUE), vl, ischecked;
+    int32_t vlBest(-MATE_VALUE), vl, ischecked, mv;
 
     // 1. beta 值比杀棋分数还小，直接返回杀气分数
     vl = pos.mateValue();
     if (vl >= beta) return vl;
 
     // 检测重复局面...
+    vl = pos.repStatus();
+    if (vl) return pos.repValue(vl);
  
     // 2. 达到极限深度 QUIESC_LIMIT 返回估值
     if (pos.distance == QUIESC_LIMIT) return evaluate();
 
     // 3. 生成着法
-    if ((ischecked = pos.isChecked())) pos.genAllMoves(); // 被将军 生成全部着法
-    else { // 不被将军，先进行局面评估是否能截断
+    if ((ischecked = pos.isChecked())) { // 被将军 生成全部着法
+        pos.resetMvKillerHash();
+        pos.genAllMoves(); 
+    } else { // 不被将军，先进行局面评估是否能截断
         vl = evaluate();
         if (vl > vlBest) {
             if (vl >= beta) return vl;
             vlBest = vl;
             if (vl > alpha) alpha = vl;
         }
-        if (!ischecked) pos.genCapMoves(); // 将军未被威胁 仅生成吃子着法
+        if (!ischecked) { // 将军未被威胁 仅生成吃子着法
+            pos.resetMvKillerHash();
+            // if (debug) std::cout << pos.distance << std::endl;
+            pos.genCapMoves();
+        }
     }
 
-    while (pos.nextMove()) {
-        if (!pos.makeMove()) continue;
+    pos.phase[pos.distance] = PHASE::OTHER; // 不进行其它启发
+    while ((mv = pos.nextMove())) {
+        if (!pos.makeMove(mv)) continue;
         vl = -searchQuiescence(-beta, -alpha);
         pos.undoMakeMove();
 
