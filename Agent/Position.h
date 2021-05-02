@@ -172,7 +172,6 @@ inline int32_t OPP_SIDE(int32_t sd) { return sd ^ 1; }
 // 着法对象
 struct Moves {
     int32_t mv; // 着法
-    int32_t cap; // 捕获的棋子
     int_fast64_t vl; /*分值*/
 };
 
@@ -183,7 +182,6 @@ struct MoveList {
 
 // 着法比较函数
 inline bool operator<(const Moves& lhs, const Moves& rhs) {
-    // if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
     return lhs.vl > rhs.vl;
 }
 
@@ -233,6 +231,8 @@ char ptToChar(int32_t pt);
 
 std::string MOVE_TO_STR(int32_t mv);
 
+int32_t STR_TO_MOVE(std::string mvStr);
+
 class Zobrist;
 
 struct Position {
@@ -254,7 +254,7 @@ struct Position {
     void undoMovePiece(int32_t mv, int32_t cap);
 
     // 执行走法
-    bool makeMove();
+    bool makeMove(int32_t mv);
     // 撤销走法
     void undoMakeMove();
     // 得到下一个走法，无走法返回 0

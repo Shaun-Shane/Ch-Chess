@@ -380,6 +380,14 @@ std::string MOVE_TO_STR(int32_t mv) {
             (char)('0' + toY)};
 }
 
+int32_t STR_TO_MOVE(std::string mvStr) {
+    int32_t preY = mvStr[1] - '0', preX = mvStr[0] - 'a';
+    int32_t toY = mvStr[3] - '0', toX = mvStr[2] - 'a';
+    int32_t src = COORD_XY(preX + X_FROM, preY + Y_FROM);
+    int32_t dst = COORD_XY(toX + X_FROM, toY + Y_FROM);
+    return MOVE(src, dst);
+}
+
 // 初始化
 void Position::clear() {
     memset(this->squares, 0, sizeof(this->squares));
@@ -479,18 +487,16 @@ void Position::undoMovePiece(int32_t mv, int32_t cap) {
 }
 
 // 执行走法
-bool Position::makeMove() {
-    auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
-    this->movePiece(mvPtr->mv); // 执行走法
+bool Position::makeMove(int32_t mv) {
+    auto mvListPtr = this->moveList + this->moveNum; // 将走法加入到mvList
+    mvListPtr->mv = mv, mvListPtr->cap = this->squares[DST(mv)];
+    mvListPtr->key = this->zobrist->getCurKey();
+
+    this->movePiece(mv); // 执行走法
     if (this->isChecked()) {
-        this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap);
+        this->undoMovePiece(MOVE(DST(mv), SRC(mv)), mvListPtr->cap);
         return false;
     }
-
-    auto mvListPtr = this->moveList + this->moveNum; // 将走法加入到mvList
-    mvListPtr->mv = mvPtr->mv;
-    mvListPtr->cap = mvPtr->cap;
-    mvListPtr->key = this->zobrist->getCurKey();
 
     this->changeSide(); // 交换走子方
 
@@ -506,8 +512,8 @@ void Position::undoMakeMove() {
 
     this->changeSide(); // 交换走子方
 
-    auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
-    this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap); // 撤销走法
+    auto mvListPtr = this->moveList + this->moveNum; // 撤销走子
+    this->undoMovePiece(MOVE(DST(mvListPtr->mv), SRC(mvListPtr->mv)), mvListPtr->cap); // 撤销走法
 }
 
 // 空着
@@ -539,7 +545,7 @@ int32_t Position::nullSafe() {
 }
 
 int32_t Position::repValue(int32_t vl) {
-    int32_t tmp = ((vl & 0b10) ? this->banValue() : 0) + ((vl & 0b100) ? -this->banValue() : 0);
+    int32_t tmp = ((vl & 2) ? this->banValue() : 0) + ((vl & 4) ? -this->banValue() : 0);
     return tmp ? tmp : this->drawValue();
 }
 // 长将判负分值 与深度有关

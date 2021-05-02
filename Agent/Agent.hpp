@@ -38,8 +38,9 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
     pos.fromFen(UcciComm.szFenStr);
     for (int i = 0; i < UcciComm.nMoveNum; i++) {
         std::string mvStr = UcciComm.lpdwMovesCoord[i];
-        pos.movePiece(mvStr);
-        pos.changeSide();
+        pos.makeMove(STR_TO_MOVE(mvStr));
+        // pos.movePiece(mvStr);
+        // pos.changeSide();
     }
 }
 
@@ -92,6 +93,7 @@ void Agent::run_debug() {
             init();
             // printVl();
         } else if (opt == "turn") { // my turn
+            std::cout << "repStatus: " << pos.repStatus() << std::endl;
             auto st = clock();
             auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
@@ -99,6 +101,7 @@ void Agent::run_debug() {
             pos.movePiece(result.second);
             pos.debug();
             std::cout << "vlBest: " << result.first << std::endl;
+            std::cout << "repStatus: " << pos.repStatus() << std::endl;
         } else if (opt == "move") {
             move();
             // printVl();
@@ -136,7 +139,9 @@ void Agent::set() {
 void Agent::move() {
     std::string s;
     std::cin >> s;
-    pos.movePiece(s);
+    // pos.movePiece(s);
+    pos.makeMove(STR_TO_MOVE(s));
+    pos.changeSide();
 }
 
 void Agent::printVl() {

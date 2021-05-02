@@ -8,7 +8,7 @@ bool debug = false;
 std::pair<int32_t, int32_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
     memset(killerTable, 0, sizeof(killerTable));
-    pos.distance = 0, pos.moveNum = 0;
+    pos.distance = 0;
 
     auto searchSt = clock();
     int32_t bestVl, bestMv;
@@ -17,12 +17,12 @@ std::pair<int32_t, int32_t> searchMain() {
     if (bestMv && pos.isLegalMove(bestMv))
         return {0, bestMv};
 
-    for (int32_t depth = 4; depth <= 7; depth++) {
+    for (int32_t depth = 4; depth <= 32; depth++) {
         std::tie(bestVl, bestMv) = searchRoot(depth);
         #ifndef USE_UCCI
             std::cout << depth << " " << clock() - searchSt << std::endl;
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
+        if (clock() - searchSt > CLOCKS_PER_SEC / 5) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
@@ -40,7 +40,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
     
     pos.generateMoves();
     while ((mv = pos.nextMove())) {
-        if (!pos.makeMove()) continue;
+        if (!pos.makeMove(mv)) continue;
         // 判断能否吃掉敌方将军; 注意 makeMove 后 sidePly 变化
         if (!pos.pieces[SIDE_TAG(pos.sidePly) + KING_FROM]) {
             pos.undoMakeMove();
@@ -94,7 +94,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
 
     pos.generateMoves();
     while ((mv = pos.nextMove())) {
-       if (!pos.makeMove()) continue;
+       if (!pos.makeMove(mv)) continue;
 
         // PVS
         if (vlBest == -MATE_VALUE) {
@@ -123,7 +123,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
 }
 
 int32_t searchQuiescence(int32_t alpha, int32_t beta) {
-    int32_t vlBest(-MATE_VALUE), vl, ischecked;
+    int32_t vlBest(-MATE_VALUE), vl, ischecked, mv;
 
     // 1. beta 值比杀棋分数还小，直接返回杀气分数
     vl = pos.mateValue();
@@ -134,7 +134,7 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
     if (vl) return pos.repValue(vl);
  
     // 2. 达到极限深度 QUIESC_LIMIT 返回估值
-    if (pos.distance == QUIESC_LIMIT ) return evaluate();
+    if (pos.distance == QUIESC_LIMIT) return evaluate();
 
     // 3. 生成着法
     if ((ischecked = pos.isChecked())) { // 被将军 生成全部着法
@@ -155,8 +155,8 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
     }
 
     pos.phase[pos.distance] = PHASE::OTHER; // 不进行其它启发
-    while (pos.nextMove()) {
-        if (!pos.makeMove()) continue;
+    while ((mv = pos.nextMove())) {
+        if (!pos.makeMove(mv)) continue;
         vl = -searchQuiescence(-beta, -alpha);
         pos.undoMakeMove();
 

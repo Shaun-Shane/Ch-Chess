@@ -24,8 +24,7 @@ void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
 #define ADD_ONE_MOVE()                                              \
     {                                                               \
         this->curMvCnt[this->distance] = 0;                         \
-        this->mvsGen[this->distance][0].mv = mv;                      \
-        this->mvsGen[this->distance][0].cap = this->squares[DST(mv)]; \
+        this->mvsGen[this->distance]->mv = mv;                      \
     }
 // 得到下一个走法，无走法返回 0
 int32_t Position::nextMove() {
@@ -83,7 +82,6 @@ int32_t Position::nextMove() {
             mvsGenPtr->vl = (mvsGenPtr->mv == mvHash)                        \
                                 ? 1e18 /*置换表着法分值最大*/       \
                                 : historyTable[historyIndex(mvsGenPtr->mv)]; \
-            mvsGenPtr->cap = this->squares[dst];                             \
             mvsGenPtr++, this->genNum[this->distance]++;                     \
         }                                                                    \
     }
@@ -203,7 +201,6 @@ void Position::sortMoves() {
         if (!(this->squares[dst] & sideTag) && this->squares[dst]) {         \
             mvsGenPtr->mv = MOVE(src, dst);                                  \
             mvsGenPtr->vl = MVV_LVA(this->squares[dst], this->squares[src]); \
-            mvsGenPtr->cap = this->squares[dst];                             \
             mvsGenPtr++, this->genNum[this->distance]++;                     \
         }                                                                    \
     }
