@@ -1,5 +1,4 @@
 #include "search.h"
-#include "Position.h"
 
 time_t searchSt;
 
@@ -11,6 +10,10 @@ std::pair<int32_t, int32_t> searchMain() {
 
     auto searchSt = clock();
     int32_t bestVl, bestMv;
+
+    bestMv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
+    if (bestMv && pos.isLegalMove(bestMv))
+        return {0, bestMv};
 
     for (int32_t depth = 4; depth <= 32; depth++) {
         std::tie(bestVl, bestMv) = searchRoot(depth);

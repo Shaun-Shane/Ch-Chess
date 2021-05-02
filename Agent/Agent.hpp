@@ -1,6 +1,3 @@
-#ifndef AGENT_HPP
-#define AGENT_HPP
-
 #ifndef VSC_DEBUG
 #include "ucci.hpp"
 #include "search.h"
@@ -145,5 +142,3 @@ void Agent::move() {
 void Agent::printVl() {
     std::cout << "scores: " << pos.vlRed << " " << pos.vlBlack << std::endl;
 }
-
-#endif

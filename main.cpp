@@ -1,4 +1,4 @@
-// !使用命令行编译时注释掉!
+// !使用命令行编译时注释掉! 使用 code runner 不要注释!
 // #define VSC_DEBUG
 // 使用 ucci 时注释掉
 #define USE_UCCI

@@ -94,7 +94,7 @@ void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
-    MoveObj* mvsGenPtr = this->mvsGen[this->distance];
+    Moves* mvsGenPtr = this->mvsGen[this->distance];
 
     // 1. 生成 KING 走法 将军死亡不会再调用 genAllMoves的
     src = this->pieces[sideTag + KING_FROM];
@@ -215,7 +215,7 @@ void Position::genCapMoves() {
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
-    MoveObj* mvsGenPtr = this->mvsGen[this->distance];
+    Moves* mvsGenPtr = this->mvsGen[this->distance];
 
     // 1. 生成 KING 吃子走法
     src = this->pieces[sideTag + KING_FROM];

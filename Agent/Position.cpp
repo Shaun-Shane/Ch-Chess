@@ -1,5 +1,9 @@
-#ifndef POSITION_CPP
-#define POSITION_CPP
+#ifndef VSC_DEBUG
+#include "Zobrist.h"
+#else 
+#include "Zobrist.cpp"
+#include "source.cpp"
+#endif
 
 #include "Position.h"
 #include "assert.h"
@@ -8,6 +12,7 @@
 #endif
 
 Position pos;
+Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
 int32_t killerTable[MAX_DISTANCE][2] = {0};
@@ -382,6 +387,7 @@ void Position::clear() {
     this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
     this->vlRed = this->vlBlack = 0;
     this->moveNum = 0, this->distance = 0;
+    this->zobrist = &zob, this->zobrist->initZero();
 }
 
 // 将棋子 pc 添加进棋局中的 sq 位置
@@ -399,22 +405,13 @@ void Position::addPiece(int32_t sq, int32_t pc, bool del) {
         this->squares[sq] = pc, this->pieces[pc] = sq;
     }
     // this->zobr.Xor(PreGen.zobrTable[pt][sq]);
+    this->zobrist->zobristUpdateMove(sq, pc);
 }
 
 // 交换走子方
-void Position::changeSide() { this->sidePly = this->sidePly ^ 1; }
-
-// 保存状态
-void Position::saveStatus() {
-    auto rbObjPtr = this->rollBackList + this->moveNum;
-    rbObjPtr->vlRed = this->vlRed;
-    rbObjPtr->vlBlack = this->vlBlack;
-}
-
-void Position::rollBack() {
-    auto rbObjPtr = this->rollBackList + this->moveNum;
-    this->vlRed = rbObjPtr->vlRed;
-    this->vlBlack = rbObjPtr->vlBlack;
+void Position::changeSide() {
+    this->sidePly = this->sidePly ^ 1;
+    this->zobrist->zobristUpdateChangeSide();
 }
 
 // 根据 mvStr 字符串移动棋子
@@ -490,7 +487,6 @@ bool Position::makeMove() {
         return false;
     }
 
-    this->saveStatus();
     this->changeSide(); // 交换走子方
 
     this->distance++;
@@ -503,7 +499,6 @@ void Position::undoMakeMove() {
     this->moveNum--;
 
     this->changeSide(); // 交换走子方
-    this->rollBack();
 
     auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
     this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap); // 撤销走法
@@ -511,7 +506,6 @@ void Position::undoMakeMove() {
 
 // 空着
 void Position::makeNullMove() {
-    this->saveStatus();
     this->changeSide(); // 交换走子方
     this->distance++;
     this->moveNum++;
@@ -521,7 +515,6 @@ void Position::undoMakeNullMove() {
     this->distance--;
     this->moveNum--;
     this->changeSide(); // 交换走子方
-    this->rollBack();
 }
 
 // 当前局面的优势是否足以进行空步搜索
@@ -840,7 +833,5 @@ void Position::debug() { // 仅 debug 模式下使用
     std::cout << "  a b c d e f g h i" << std::endl;
     std::cout.flush() << std::endl;
 }
-
-#endif
 
 #endif

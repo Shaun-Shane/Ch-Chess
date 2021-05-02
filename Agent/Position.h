@@ -168,14 +168,14 @@ inline int32_t OPP_SIDE_TAG(int32_t side) { return 32 - (side << 4); }
 inline int32_t OPP_SIDE(int32_t sd) { return sd ^ 1; }
 
 // 着法对象
-struct MoveObj {
+struct Moves {
     int32_t mv; // 着法
     int32_t cap; // 捕获的棋子
     int_fast64_t vl; /*分值*/
 };
 
 // 着法比较函数
-inline bool operator<(const MoveObj& lhs, const MoveObj& rhs) {
+inline bool operator<(const Moves& lhs, const Moves& rhs) {
     // if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
     return lhs.vl > rhs.vl;
 }
@@ -226,12 +226,7 @@ char ptToChar(int32_t pt);
 
 std::string MOVE_TO_STR(int32_t mv);
 
-// 回滚对象
-struct RollbackObj {
-  unsigned long long zobrist; // Zobrist
-  int32_t vlRed, vlBlack; // 红方和黑方的子力价值
-  MoveObj mvObj;       // 着法
-}; // rbOjb
+class Zobrist;
 
 struct Position {
     // 初始化棋局数组
@@ -242,10 +237,6 @@ struct Position {
 
     // 交换走子方
     void changeSide();
-    // 保存状态
-    void saveStatus();
-    // 回到之前状态
-    void rollBack();
 
     // 根据 mvStr 字符串移动棋子
     void movePiece(std::string mvStr);
@@ -305,14 +296,15 @@ struct Position {
     int32_t vlRed, vlBlack; // 红方、黑方估值
 
     int32_t moveNum, distance; // 着法数、搜索步数
-    RollbackObj rollBackList[MAX_LIST_SIZE]; // 回滚列表
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
     int32_t phase[MAX_DISTANCE]; // 启发阶段
     int32_t mvHash[MAX_DISTANCE]; // 置换表着法
     int32_t mvKiller1[MAX_DISTANCE], mvKiller2[MAX_DISTANCE]; // 两个杀手着法
-    MoveObj mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
+    Moves mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
+
+    Zobrist* zobrist;
 };
 
 extern Position pos;
