@@ -1,25 +1,24 @@
-#pragma once
 #ifndef ZOBRIST_H
 #define ZOBRIST_H
-#include "Position.h"
 #include <algorithm>
 #include <vector>
-#define CHESS_TYPE_NUM 14//棋子种类数
+
+#include "Position.h"
+#define CHESS_TYPE_NUM 14  //棋子种类数
 #define START_LIBRARY_SIZE 12081
 #define BOARD_SIZE 256
 
-extern const unsigned int zobristKeyPlayer;//代表着子方变化的zobrist key值
-extern const unsigned int zobristLockPlayer;//代表着子方变化的zobrist lock值
+extern const unsigned int zobristKeyPlayer;  //代表着子方变化的zobrist key值
+extern const unsigned int zobristLockPlayer;  //代表着子方变化的zobrist lock值
 //棋子pc在位置sq的zobrist key 值为zobristKeyTable[pc][sq]，lock值同理，
-//pc共有14种，0-6为红帅士相马车炮兵，7-13为黑方对应棋子，sq为0-255，对应棋盘相应位置
+// pc共有14种，0-6为红帅士相马车炮兵，7-13为黑方对应棋子，sq为0-255，对应棋盘相应位置
 extern const unsigned int zobristKeyTable[CHESS_TYPE_NUM][BOARD_SIZE];
 extern const unsigned int zobristLockTable[CHESS_TYPE_NUM][BOARD_SIZE];
 
 //库数据结构体
-struct Library
-{
-    unsigned int situation;//某一个局面对应的zobrist lock值
-    unsigned short moveInfo, moveValue;//该局面下的移动方法及相应的价值
+struct Library {
+    unsigned int situation;  //某一个局面对应的zobrist lock值
+    unsigned short moveInfo, moveValue;  //该局面下的移动方法及相应的价值
 };
 
 //开局库数组
@@ -32,20 +31,23 @@ int mirrorPos(int sq);
 int mirrorMov(int mv);
 //以zobrist lock值为关键字从小到大排序Library结构体
 bool comp(const Library &l1, const Library &l2);
-class Zobrist
-{
-protected:
+
+class Zobrist {
+   protected:
     //当前局面对应的zobrist key和lock值
     unsigned int curZobristKey, curZobristLock;
-public:
+
+   public:
     //构造函数，置0
     Zobrist();
+    // 置零
+    void initZero();
     //返回curZobristKey值
     unsigned int getCurKey();
     //返回curZobristLock值
     unsigned int getCurLock();
     //移动棋子时调用，更新当前局面的zobrist key和lock值，若pc!=0，则
-    //curZobristKey和curZobristLock分别异或zobristKeyTable[pc][sq]
+    // curZobristKey和curZobristLock分别异或zobristKeyTable[pc][sq]
     //和zobristLockTable[pc][sq](无论加棋子还是删棋子都一样)
     void zobristUpdateMove(int sq, int pc);
     //改变着子方时更新当前局面的zobrist key和lock值
@@ -55,5 +57,7 @@ public:
     //构造函数，由某一个局面特定的squares，sidePlayer值，并根据是否镜像翻转，确定对应的zobrist值
     Zobrist(int squares[], int sidePlayer, bool mirror);
 };
+
+extern Zobrist zob;
 
 #endif

@@ -1,12 +1,19 @@
 #ifndef POSITION_CPP
 #define POSITION_CPP
 
+#ifndef VSC_DEBUG
+#include "Zobrist.h"
+#else 
+#include "Zobrist.cpp"
+#include "source.cpp"
+#endif
+
 #include "Position.h"
 #include "assert.h"
 #ifdef POS_DEBUG
 #include "windows.h"
 #endif
-#include "Zobrist.h"
+
 Position pos;
 
 int_fast64_t historyTable[1 << 12] = {0};
@@ -373,7 +380,7 @@ void Position::clear() {
     this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
     this->vlRed = this->vlBlack = 0;
     this->moveNum = 0, this->distance = 0;
-    zobrist = new Zobrist;
+    this->zobrist = &zob, this->zobrist->initZero();
 }
 
 // 将棋子 pc 添加进棋局中的 sq 位置

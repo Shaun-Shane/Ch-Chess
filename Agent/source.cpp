@@ -1,6 +1,8 @@
 #include "Zobrist.h"
+
 const unsigned int zobristKeyPlayer = 1099503838;
 const unsigned int zobristLockPlayer = 1730021002;
+
 const unsigned int zobristKeyTable[CHESS_TYPE_NUM][BOARD_SIZE] = 
 {
  	{
@@ -511,6 +513,7 @@ const unsigned int zobristLockTable[CHESS_TYPE_NUM][BOARD_SIZE] =
 		2964967751, 1014420744, 758590449, 957879396, 3424469625, 998097234, 2894146914, 4085368969, 4048952016, 391634050, 719917999, 920615792, 1339079676, 1428892278, 979393789, 3255671968
 	}
 };
+
 const Library startLib[START_LIBRARY_SIZE] = 
 {
 	{203040, 31049, 6},
