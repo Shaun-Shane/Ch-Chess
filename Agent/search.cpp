@@ -1,23 +1,26 @@
 #include "search.h"
 #include "Position.h"
-
+#include "Zobrist.h"
+#include <windows.h>
 time_t searchSt;
 
 // 搜索主函数
 std::pair<int32_t, int32_t> searchMain() {
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
-
     auto searchSt = clock();
     int32_t bestVl;
     int32_t bestMv;
-
+    int mv = 0;
+    mv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
+    if (mv && pos.isLegalMove(mv))
+        return {0, mv};
     for (int32_t depth = 3; depth <= 32; depth++) {
        
         std::tie(bestVl, bestMv) = searchRoot(depth);
         #ifndef USE_UCCI
             std::cout << clock() - searchSt << std::endl;
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC / 5) {
+        if (clock() - searchSt > CLOCKS_PER_SEC * 2) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
@@ -30,9 +33,8 @@ std::pair<int32_t, int32_t> searchMain() {
 }
 
 std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
-    int32_t vlBest(-MATE_VALUE), vl;
+    int32_t vlBest(-MATE_VALUE), vl(0);
     int32_t mvBest(0), mv;
-    
     pos.genAllMoves();
     while ((mv = pos.nextMove())) {
         if (!pos.makeMove()) continue;

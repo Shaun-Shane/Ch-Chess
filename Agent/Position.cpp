@@ -6,7 +6,7 @@
 #ifdef POS_DEBUG
 #include "windows.h"
 #endif
-
+#include "Zobrist.h"
 Position pos;
 
 int_fast64_t historyTable[1 << 12] = {0};
@@ -373,6 +373,7 @@ void Position::clear() {
     this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
     this->vlRed = this->vlBlack = 0;
     this->moveNum = 0, this->distance = 0;
+    zobrist = new Zobrist;
 }
 
 // 将棋子 pc 添加进棋局中的 sq 位置
@@ -390,10 +391,11 @@ void Position::addPiece(int32_t sq, int32_t pc, bool del) {
         this->squares[sq] = pc, this->pieces[pc] = sq;
     }
     // this->zobr.Xor(PreGen.zobrTable[pt][sq]);
+    this->zobrist->zobristUpdateMove(sq, pc);
 }
 
 // 交换走子方
-void Position::changeSide() { this->sidePly = this->sidePly ^ 1; }
+void Position::changeSide() { this->sidePly = this->sidePly ^ 1;this->zobrist->zobristUpdateChangeSide(); }
 
 // 保存状态
 void Position::saveStatus() {

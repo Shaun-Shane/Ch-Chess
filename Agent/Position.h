@@ -227,6 +227,7 @@ struct RollbackObj {
   MoveObj mvObj;       // 着法
 }; // rbOjb
 
+class Zobrist;
 struct Position {
     // 初始化棋局数组
     void clear();
@@ -300,6 +301,7 @@ struct Position {
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
     MoveObj mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
+    Zobrist* zobrist;
 };
 
 extern Position pos;

@@ -1,0 +1,10 @@
+1.position.h中struct Position前置定义class Zobrist
+2.position.h中struct Position加入新成员Zobrist* zobrist;
+3.position.cpp中addPiece()函数最后加this->zobrist->zobristUpdateMove(sq, pc);
+4.position.cpp中Position::changeSide()最后加this->zobrist->zobristUpdateChangeSide();
+5.position.cpp中Position::clear()最后加zobrist = new Zobrist;
+6.search.cpp中std::pair<int32_t, int32_t> searchMain()开头加开局库的查找
+    int mv = 0;
+    mv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
+    if (mv && pos.isLegalMove(mv))
+        return {0, mv};
