@@ -33,14 +33,10 @@ constexpr int32_t CANNON_TO = 10;   // 炮
 constexpr int32_t PAWN_FROM = 11;   // 卒
 constexpr int32_t PAWN_TO = 15;     // 卒
 
-enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
-
 constexpr bool DEL_PIECE = true;   // 添加棋子
 
 constexpr int32_t MATE_VALUE = 1e4; // 将军
-constexpr int32_t BAN_VALUE = MATE_VALUE - 120; // 长将判负
-constexpr int32_t WIN_VALUE = MATE_VALUE - 180; // 赢棋分值 高于 WIN_VALUE 都是赢棋
-constexpr int32_t DRAW_VALUE = 20; // 和棋时返回分数 取负值
+constexpr int32_t WIN_VALUE = MATE_VALUE - 120; // 赢棋分值 高于 WIN_VALUE 都是赢棋
 
 constexpr int32_t MAX_LIST_SIZE = 1024;  // 最大回滚着法数
 constexpr int32_t MAX_GER_NUM = 128; // 最多可能的着法数 不会超过 128
@@ -170,18 +166,15 @@ inline int32_t OPP_SIDE_TAG(int32_t side) { return 32 - (side << 4); }
 inline int32_t OPP_SIDE(int32_t sd) { return sd ^ 1; }
 
 // 着法对象
-struct Moves {
+struct MoveObj {
     int32_t mv; // 着法
+    int32_t cap; // 捕获的棋子
     int_fast64_t vl; /*分值*/
 };
 
-struct MoveList {
-    int32_t mv, cap, chk; // 着法 吃的子 是否将军
-    uint32_t key; // zobrist 键值
-};
-
 // 着法比较函数
-inline bool operator<(const Moves& lhs, const Moves& rhs) {
+inline bool operator<(const MoveObj& lhs, const MoveObj& rhs) {
+    // if (lhs.vl == rhs.vl) return lhs.cap > rhs.cap; // 视情况注释掉
     return lhs.vl > rhs.vl;
 }
 
@@ -198,13 +191,9 @@ inline int32_t MOVE(int32_t src, int32_t dst) {
 
 // 历史表
 extern int_fast64_t historyTable[1 << 12];
-// 杀手着法表
-extern int32_t killerTable[MAX_DISTANCE][2];
 
 // 更新历史表
 void setHistory(int32_t mv, int32_t depth);
-// 更新杀手着法表
-void setKillerTable(int32_t mv);
 
 // 获得 mv 对应的历史表下标
 int_fast32_t historyIndex(int32_t mv);
@@ -231,9 +220,12 @@ char ptToChar(int32_t pt);
 
 std::string MOVE_TO_STR(int32_t mv);
 
-int32_t STR_TO_MOVE(std::string mvStr);
-
-class Zobrist;
+// 回滚对象
+struct RollbackObj {
+  unsigned long long zobrist; // Zobrist
+  int32_t vlRed, vlBlack; // 红方和黑方的子力价值
+  MoveObj mvObj;       // 着法
+}; // rbOjb
 
 class Zobrist;
 struct Position {
@@ -245,6 +237,10 @@ struct Position {
 
     // 交换走子方
     void changeSide();
+    // 保存状态
+    void saveStatus();
+    // 回到之前状态
+    void rollBack();
 
     // 根据 mvStr 字符串移动棋子
     void movePiece(std::string mvStr);
@@ -255,7 +251,7 @@ struct Position {
     void undoMovePiece(int32_t mv, int32_t cap);
 
     // 执行走法
-    bool makeMove(int32_t mv);
+    bool makeMove();
     // 撤销走法
     void undoMakeMove();
     // 得到下一个走法，无走法返回 0
@@ -269,32 +265,19 @@ struct Position {
     // 空步搜索得到的分值是否有效
     int32_t nullSafe();
 
-    // 重复局面分数
-    int32_t repValue(int32_t vl);
-    // 长将判负分值 与深度有关
-    int32_t banValue();
-    // 和棋分值
-    int32_t drawValue();
     // 输棋分值 与深度有关
     int32_t mateValue();
     // 判断是否被将军 是则返回 true
     int32_t isChecked();
     // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
-    // 判断重复局面
-    int32_t repStatus(int32_t repCount = 1);
-    
 
-    // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
-    void generateMoves(int32_t mvHash = 0);
     // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
-    void genAllMoves(int32_t mvHash = 0);
+    void genAllMoves();
     // 吃子着法生成 见 genMoves.cpp
     void genCapMoves();
-    // 对着法排序 见 genMoves.cpp
+    // 着法排序 见 genMoves.cpp
     void sortMoves();
-    // 将 mvKiller, mvHash 清零
-    void resetMvKillerHash();
 
 
     // 通过FEN串初始化棋局
@@ -313,7 +296,7 @@ struct Position {
     int32_t vlRed, vlBlack; // 红方、黑方估值
 
     int32_t moveNum, distance; // 着法数、搜索步数
-    MoveList moveList[MAX_DISTANCE << 2]; // 着法列标
+    RollbackObj rollBackList[MAX_LIST_SIZE]; // 回滚列表
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标

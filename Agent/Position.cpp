@@ -1,9 +1,5 @@
-#ifndef VSC_DEBUG
-#include "Zobrist.h"
-#else 
-#include "Zobrist.cpp"
-#include "source.cpp"
-#endif
+#ifndef POSITION_CPP
+#define POSITION_CPP
 
 #ifndef VSC_DEBUG
 #include "Zobrist.h"
@@ -22,7 +18,6 @@ Position pos;
 Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
-int32_t killerTable[MAX_DISTANCE][2] = {0};
 
 // 用于判断棋子是否在棋盘上
 const int32_t _IN_BOARD[256] = {
@@ -371,28 +366,12 @@ void setHistory(int32_t mv, int32_t depth) {
            DST(mv)] += depth * depth;
 }
 
-void setKillerTable(int32_t mv) {
-    auto tablePtr = killerTable[pos.distance];
-    if (tablePtr[0] != mv) {
-        tablePtr[1] = tablePtr[0]; // newKillerMove -> 0, 0 -> 1
-        tablePtr[0] = mv;
-    }
-}
-
 std::string MOVE_TO_STR(int32_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;
     int toX = GET_X(dst) - X_FROM, toY = GET_Y(dst) - Y_FROM;
     return {(char)('a' + preX), (char)('0' + preY), (char)('a' + toX),
             (char)('0' + toY)};
-}
-
-int32_t STR_TO_MOVE(std::string mvStr) {
-    int32_t preY = mvStr[1] - '0', preX = mvStr[0] - 'a';
-    int32_t toY = mvStr[3] - '0', toX = mvStr[2] - 'a';
-    int32_t src = COORD_XY(preX + X_FROM, preY + Y_FROM);
-    int32_t dst = COORD_XY(toX + X_FROM, toY + Y_FROM);
-    return MOVE(src, dst);
 }
 
 // 初始化
@@ -503,21 +482,28 @@ void Position::undoMovePiece(int32_t mv, int32_t cap) {
     this->addPiece(SRC(mv), cap);
 }
 
-// 执行走法
-bool Position::makeMove(int32_t mv) {
-    auto mvListPtr = this->moveList + this->moveNum; // 将走法加入到mvList
-    mvListPtr->mv = mv, mvListPtr->cap = this->squares[DST(mv)];
-    mvListPtr->key = this->zobrist->getCurKey();
+// 得到下一个走法，无走法返回 0
+int32_t Position::nextMove() {
+    if (this->curMvCnt[this->distance] + 1 >= this->genNum[this->distance])
+        return 0; // 达到最大着法数 返回 false 结束循环
+    // 判断合法走法 ...
 
-    this->movePiece(mv); // 执行走法
+    this->curMvCnt[this->distance]++; // 增加为下一个走法的下标
+    return (this->mvsGen[this->distance] + this->curMvCnt[this->distance])->mv;
+}
+
+// 执行走法
+bool Position::makeMove() {
+    auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
+    this->movePiece(mvPtr->mv); // 执行走法
     if (this->isChecked()) {
-        this->undoMovePiece(MOVE(DST(mv), SRC(mv)), mvListPtr->cap);
+        this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap);
         return false;
     }
 
+    this->saveStatus();
     this->changeSide(); // 交换走子方
 
-    mvListPtr->chk = this->isChecked();
     this->distance++;
     this->moveNum++;
     return true;
@@ -528,19 +514,15 @@ void Position::undoMakeMove() {
     this->moveNum--;
 
     this->changeSide(); // 交换走子方
+    this->rollBack();
 
-    auto mvListPtr = this->moveList + this->moveNum; // 撤销走子
-    this->undoMovePiece(MOVE(DST(mvListPtr->mv), SRC(mvListPtr->mv)), mvListPtr->cap); // 撤销走法
+    auto mvPtr = this->mvsGen[this->distance] + this->curMvCnt[this->distance];
+    this->undoMovePiece(MOVE(DST(mvPtr->mv), SRC(mvPtr->mv)), mvPtr->cap); // 撤销走法
 }
 
 // 空着
 void Position::makeNullMove() {
-    auto mvListPtr = this->moveList + this->moveNum; // 将走法加入到mvList
-    mvListPtr->mv = 0;
-    mvListPtr->cap = 0;
-    mvListPtr->key = this->zobrist->getCurKey();
-    mvListPtr->chk = 0;
-
+    this->saveStatus();
     this->changeSide(); // 交换走子方
     this->distance++;
     this->moveNum++;
@@ -550,6 +532,7 @@ void Position::undoMakeNullMove() {
     this->distance--;
     this->moveNum--;
     this->changeSide(); // 交换走子方
+    this->rollBack();
 }
 
 // 当前局面的优势是否足以进行空步搜索
@@ -561,21 +544,9 @@ int32_t Position::nullSafe() {
     return (this->sidePly ? this->vlBlack : this->vlRed) > 200;
 }
 
-int32_t Position::repValue(int32_t vl) {
-    int32_t tmp = ((vl & 2) ? this->banValue() : 0) + ((vl & 4) ? -this->banValue() : 0);
-    return tmp ? tmp : this->drawValue();
-}
-// 长将判负分值 与深度有关
-int32_t Position::banValue() {
-    return -BAN_VALUE + this->distance;
-}
 // 输棋分值 与深度有关
 int32_t Position::mateValue() {
     return -MATE_VALUE + this->distance;
-}
-
-int32_t Position::drawValue() {
-    return (this->distance & 1) ? DRAW_VALUE : -DRAW_VALUE;
 }
 
 #define CHECK_PIECE()                   \
@@ -722,30 +693,6 @@ int32_t Position::isLegalMove(int32_t mv) {
     }
     assert(false); // shouldn't reach here
     return false;
-}
-
-int32_t Position::repStatus(int32_t repCount) {
-    bool selfSide = false;
-    bool perpetualCheck = true;
-    bool oppPerpetualCheck = true;
-    int32_t i = this->moveNum - 1;
-    while (i >= 0 && this->moveList[i].mv && !this->moveList[i].cap) {
-        if (selfSide) {
-            perpetualCheck &= this->moveList[i].chk;
-            if (this->moveList[i].key == this->zobrist->getCurKey()) {
-                repCount--;
-                if (repCount == 0) {
-                    return 1 + (perpetualCheck ? 2 : 0) +
-                           (oppPerpetualCheck ? 4 : 0);
-                }
-            }
-        } else {
-            oppPerpetualCheck &= this->moveList[i].chk;
-        }
-        selfSide ^= true;
-        i--;
-    }
-    return 0;
 }
 
 // 通过FEN串初始化棋局
@@ -904,5 +851,7 @@ void Position::debug() { // 仅 debug 模式下使用
     std::cout << "  a b c d e f g h i" << std::endl;
     std::cout.flush() << std::endl;
 }
+
+#endif
 
 #endif
