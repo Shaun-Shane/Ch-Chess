@@ -53,6 +53,11 @@ void Agent::run1() {
     pos.fromFen(cszStartFen);
     println("ucciok");
     std::pair<int32_t, int32_t> result;
+    FILE* fpw = NULL;
+    char file[11] = "output.txt";
+	int tell;
+    fpw=fopen(file,"w");
+    fclose(fpw);
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
@@ -62,16 +67,25 @@ void Agent::run1() {
                 this->buildPos(UcciComm);
                 break;
             case UCCI_COMM_GO:
+                
                 result = searchMain();
+                std::cout<<"info message "<<"asdfasfasd"<<std::endl;
+                fflush(stdout);
                 std::cout << "bestmove " << MOVE_TO_STR(result.second)
                           << std::endl;
                 pos.movePiece(result.second);
                 fflush(stdout);
+                fpw = fopen(file, "rt+");
+                fseek(fpw,0,2);
+	            fprintf(fpw, "%d\n", 1);
+	            fclose(fpw);
                 // pos.debug();
                 // std::cout.flush();
+                
                 break;
             case UCCI_COMM_QUIT:
                 bQuit = true;
+                
                 break;
             default:
                 break;
