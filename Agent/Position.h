@@ -38,8 +38,8 @@ enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
 constexpr bool DEL_PIECE = true;   // 添加棋子
 
 constexpr int32_t MATE_VALUE = 1e4; // 将军
-constexpr int32_t BAN_VALUE = MATE_VALUE - 120; // 长将判负
-constexpr int32_t WIN_VALUE = MATE_VALUE - 180; // 赢棋分值 高于 WIN_VALUE 都是赢棋
+constexpr int32_t BAN_VALUE = MATE_VALUE - 100; // 长将判负
+constexpr int32_t WIN_VALUE = MATE_VALUE - 200; // 赢棋分值 高于 WIN_VALUE 都是赢棋
 constexpr int32_t DRAW_VALUE = 20; // 和棋时返回分数 取负值
 
 constexpr int32_t MAX_LIST_SIZE = 1024;  // 最大回滚着法数

@@ -20,12 +20,6 @@ void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
     }
 }
 
-// 仅添加一个着法，用于置换表、杀手启发
-#define ADD_ONE_MOVE()                                              \
-    {                                                               \
-        this->curMvCnt[this->distance] = 0;                         \
-        this->mvsGen[this->distance]->mv = mv;                      \
-    }
 // 得到下一个走法，无走法返回 0
 int32_t Position::nextMove() {
     int32_t mv = 0;
@@ -33,8 +27,7 @@ int32_t Position::nextMove() {
         case PHASE::HASH:
             this->phase[this->distance] = PHASE::KILLER_1;
             mv = this->mvHash[this->distance];
-            if (mv /*&& legalmove ? */) {
-                ADD_ONE_MOVE();
+            if (mv && this->isLegalMove(mv)) {
                 return mv;
             }
         // 2. 第一个杀手着法
@@ -43,7 +36,6 @@ int32_t Position::nextMove() {
             mv = this->mvKiller1[this->distance];
             if (mv != this->mvHash[this->distance] && mv &&
                 this->isLegalMove(mv)) {
-                    ADD_ONE_MOVE();
                     return mv;
                 }
         // 3. 第二个杀手着法
@@ -52,14 +44,13 @@ int32_t Position::nextMove() {
             mv = this->mvKiller2[this->distance];
             if (mv != this->mvHash[this->distance] && mv &&
                 this->isLegalMove(mv)) {
-                    ADD_ONE_MOVE();
                     return mv;
                 }
 
         // 4. 生成所有着法，完成后立即进入下一阶段；
         case PHASE::GEN_MOVES:
             this->phase[this->distance] = PHASE::OTHER;
-            this->genAllMoves(); // 着法生成 + 历史表启发
+            this->genAllMoves(this->mvHash[this->distance]); // 置换表 + 历史表启发
         default:
             while (this->curMvCnt[this->distance] + 1 < this->genNum[this->distance]) {
                 this->curMvCnt[this->distance]++;

@@ -93,7 +93,6 @@ void Agent::run_debug() {
             init();
             // printVl();
         } else if (opt == "turn") { // my turn
-            std::cout << "repStatus: " << pos.repStatus() << std::endl;
             auto st = clock();
             auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
