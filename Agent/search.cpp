@@ -25,7 +25,7 @@ std::pair<int32_t, int32_t> searchMain() {
         #ifndef USE_UCCI
             std::cout << depth << " " << clock() - searchSt << std::endl;
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC / 3) {
+        if (clock() - searchSt > CLOCKS_PER_SEC) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
