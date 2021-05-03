@@ -30,6 +30,8 @@ struct Agent {
     // debug 双方分数
     void printVl();
 
+    void ucciPrintFile(FILE* fpw, std::pair<int32_t, int32_t> result);
+
     // 己方颜色 默认红色
     bool aiSide = RED;
 };
@@ -53,10 +55,9 @@ void Agent::run1() {
     pos.fromFen(cszStartFen);
     println("ucciok");
     std::pair<int32_t, int32_t> result;
-    FILE* fpw = NULL;
+    FILE *fpw = NULL;
     char file[11] = "output.txt";
-	int tell;
-    fpw=fopen(file,"w");
+    fpw = fopen(file, "w");
     fclose(fpw);
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
@@ -67,25 +68,23 @@ void Agent::run1() {
                 this->buildPos(UcciComm);
                 break;
             case UCCI_COMM_GO:
-                
+
                 result = searchMain();
-                std::cout<<"info message "<<"asdfasfasd"<<std::endl;
+                std::cout << "info message "
+                          << "asdfasfasd" << std::endl;
                 fflush(stdout);
                 std::cout << "bestmove " << MOVE_TO_STR(result.second)
                           << std::endl;
                 pos.movePiece(result.second);
                 fflush(stdout);
+
                 fpw = fopen(file, "rt+");
-                fseek(fpw,0,2);
-	            fprintf(fpw, "%d\n", 1);
-	            fclose(fpw);
-                // pos.debug();
-                // std::cout.flush();
-                
+                this->ucciPrintFile(fpw, result);
+                fclose(fpw);
                 break;
             case UCCI_COMM_QUIT:
                 bQuit = true;
-                
+
                 break;
             default:
                 break;
@@ -159,4 +158,28 @@ void Agent::move() {
 
 void Agent::printVl() {
     std::cout << "scores: " << pos.vlRed << " " << pos.vlBlack << std::endl;
+}
+
+void Agent::ucciPrintFile(FILE* fpw, std::pair<int32_t, int32_t> result) {
+    fseek(fpw, 0, 2);
+    // 输出棋盘
+    fprintf(fpw, "  a b c d e f g h i\n");
+    for (int32_t y = Y_TO; y >= Y_FROM; y--) { // 行
+        fprintf(fpw, "%d|", y - Y_FROM);
+        for (int32_t x = X_FROM; x <= X_TO; x++) { // 列
+            auto pc = pos.squares[COORD_XY(x, y)]; // (x, y) 处棋子
+            if (pc == 0) fprintf(fpw, "* ");
+            else if (pc < 32) { // 红
+                fprintf(fpw, "%c ", ptToChar(PIECE_TYPE(pc)));
+            } else {
+                fprintf(fpw, "%c ", (char)tolower(ptToChar(PIECE_TYPE(pc))));
+            }
+        }
+        fprintf(fpw, "|%d\n", y - Y_FROM);
+    }
+    fprintf(fpw, "  a b c d e f g h i\n");
+
+    fprintf(fpw, "vlBest: %d\n", result.first);
+    fprintf(fpw, "repStatus: %d\n", pos.repStatus());
+    fprintf(fpw, "\n");
 }
