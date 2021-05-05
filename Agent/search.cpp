@@ -1,4 +1,6 @@
 #include "search.h"
+// 不使用 ucci 时注释掉 main.cpp 中也有
+#define USE_UCCI
 
 time_t searchSt;
 
@@ -24,6 +26,11 @@ std::pair<int32_t, int32_t> searchMain() {
         std::tie(bestVl, bestMv) = searchRoot(depth);
         #ifndef USE_UCCI
             std::cout << depth << " " << clock() - searchSt << std::endl;
+        #else
+            FILE* fpw = fopen("output.txt", "rt+");
+            fseek(fpw, 0, 2);
+            fprintf(fpw, "depth: %d, time: %lld\n", depth, (long long)(clock() - searchSt));
+            fclose(fpw);
         #endif
         if (clock() - searchSt > CLOCKS_PER_SEC) {
            // std::cout << "depth: " << depth << std::endl;
@@ -70,6 +77,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
             }
         }
     }
+    setHistory(mvBest, depth), setKillerTable(mvBest);
     return {vlBest, mvBest}; // 返回最佳分值与走法
 }
 

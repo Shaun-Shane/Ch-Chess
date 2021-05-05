@@ -40,9 +40,9 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
     pos.fromFen(UcciComm.szFenStr);
     for (int i = 0; i < UcciComm.nMoveNum; i++) {
         std::string mvStr = UcciComm.lpdwMovesCoord[i];
-        pos.makeMove(STR_TO_MOVE(mvStr));
-        // pos.movePiece(mvStr);
-        // pos.changeSide();
+        pos.makeMove(STR_TO_MOVE(mvStr)); // makeMove 会 changeSide
+        // 吃子则 moveList 清空
+        if (pos.moveList[pos.moveNum - 1].cap) pos.moveNum = 0;
     }
 }
 
@@ -75,7 +75,7 @@ void Agent::run1() {
                 fflush(stdout);
                 std::cout << "bestmove " << MOVE_TO_STR(result.second)
                           << std::endl;
-                pos.movePiece(result.second);
+                pos.makeMove(result.second), pos.changeSide();
                 fflush(stdout);
 
                 fpw = fopen(file, "rt+");
@@ -110,7 +110,7 @@ void Agent::run_debug() {
             auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
             std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
-            pos.movePiece(result.second);
+            pos.makeMove(result.second), pos.changeSide();
             pos.debug();
             std::cout << "vlBest: " << result.first << std::endl;
             std::cout << "repStatus: " << pos.repStatus() << std::endl;
@@ -154,6 +154,8 @@ void Agent::move() {
     // pos.movePiece(s);
     pos.makeMove(STR_TO_MOVE(s));
     pos.changeSide();
+    pos.debug();
+    // std::cout << pos.repStatus() << std::endl;
 }
 
 void Agent::printVl() {
