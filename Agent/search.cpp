@@ -123,12 +123,14 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
         pos.undoMakeMove();
 
         if (vl > vlBest) {
-            vlBest = vl, mvBest = mv;
+            vlBest = vl;
             if (vl >= beta) {
+                mvBest = mv;
                 hashFlag = HASH_BETA;
                 break;
             }
             if (vl > alpha) {
+                mvBest = mv;
                 hashFlag = HASH_EXACT;
                 alpha = vl;
             }
@@ -139,7 +141,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (vlBest == -MATE_VALUE) return pos.mateValue();
 
     hashTable.recordHash(hashFlag, vlBest, depth, mvBest);
-    if (vlBest > 0) setHistory(mvBest, depth), setKillerTable(mvBest);
+    if (mvBest) setHistory(mvBest, depth), setKillerTable(mvBest);
 
     return vlBest;
 }

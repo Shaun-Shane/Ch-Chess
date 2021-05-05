@@ -19,7 +19,7 @@ constexpr int32_t QUIESC_LIMIT = 48; // 静态搜索限定深度
 
 constexpr int32_t NULL_DEPTH = 2; // 空着减去的深度
 
-constexpr int32_t HASH_LEVEL = 21;
+constexpr int32_t HASH_LEVEL = 23;
 
 // 节点类型
 constexpr int32_t HASH_EMPTY = 0;
