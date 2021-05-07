@@ -1,6 +1,6 @@
 // !使用命令行编译时注释掉! 使用 code runner 不要注释!
 // #define VSC_DEBUG
-//不使用 ucci 时注释掉 search.cpp 中也有
+// 不使用 ucci 时注释掉 search.cpp 中也有
 #define USE_UCCI
 
 #ifdef VSC_DEBUG

@@ -56,8 +56,7 @@ void Agent::run1() {
     println("ucciok");
     std::pair<int32_t, int32_t> result;
     FILE *fpw = NULL;
-    char file[11] = "output.txt";
-    fpw = fopen(file, "w");
+    fpw = fopen("output.txt", "w");
     fclose(fpw);
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
@@ -78,7 +77,7 @@ void Agent::run1() {
                 pos.makeMove(result.second), pos.changeSide();
                 fflush(stdout);
 
-                fpw = fopen(file, "rt+");
+                fpw = fopen("output.txt", "rt+");
                 this->ucciPrintFile(fpw, result);
                 fclose(fpw);
                 break;

@@ -20,7 +20,7 @@ std::pair<int32_t, int32_t> searchMain() {
     memset(killerTable, 0, sizeof(killerTable));
     pos.distance = 0;
 
-    hashTable.init();
+    hashTable.init(); // hash 表清零 所有 flag 设为 EMPTY
 
     for (int32_t depth = 4; depth <= 32; depth++) {
         std::tie(bestVl, bestMv) = searchRoot(depth);
@@ -57,13 +57,14 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
             return {MATE_VALUE, mv};
         }
 
+        int32_t nxtDepth = pos.isChecked() ? depth : depth - 1;
         // PVS
         if (vlBest == -MATE_VALUE) { // 还未找到 PV
-            vl = -searchFull(depth - 1, -MATE_VALUE, MATE_VALUE);
+            vl = -searchFull(nxtDepth, -MATE_VALUE, MATE_VALUE, true);
         } else {
-            vl = -searchFull(depth - 1, -vlBest - 1, -vlBest);
+            vl = -searchFull(nxtDepth, -vlBest - 1, -vlBest);
             if (vl > vlBest) {
-                vl = -searchFull(depth - 1, -MATE_VALUE, -vlBest);
+                vl = -searchFull(nxtDepth, -MATE_VALUE, -vlBest, true);
             }
         }
 
@@ -84,13 +85,19 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
 int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (depth <= 0) return searchQuiescence(alpha, beta);
 
+    int32_t vl = pos.mateValue();
+    if (vl >= beta) return vl; // beta 值小于将军分值，不用再搜了
+
     // 检查重复局面
-    int32_t vl = pos.repStatus();
+    vl = pos.repStatus();
     if (vl) return pos.repValue(vl);
 
     // 置换表裁剪，最佳走法保存在 mvHash[pos.distance]
     vl = hashTable.probeHash(alpha, beta, depth);
     if (vl > -MATE_VALUE) return vl;
+
+    // 达到极限深度返回
+    if (pos.distance == DEPTH_LIMIT) return evaluate();
     
     // 空着裁剪
     if (!noNull && pos.nullOkay() && !pos.isChecked()){
@@ -111,13 +118,14 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     while ((mv = pos.nextMove())) {
        if (!pos.makeMove(mv)) continue;
 
+        int32_t nxtDepth = pos.isChecked() ? depth : depth - 1;
         // PVS
         if (vlBest == -MATE_VALUE) {
-            vl = -searchFull(depth - 1, -beta, -alpha);
+            vl = -searchFull(nxtDepth, -beta, -alpha);
         } else {
-            vl = -searchFull(depth - 1, -alpha - 1, -alpha);
+            vl = -searchFull(nxtDepth, -alpha - 1, -alpha);
             if (vl > alpha && vl < beta)
-                vl = -searchFull(depth - 1, -beta, -alpha);
+                vl = -searchFull(nxtDepth, -beta, -alpha);
         }
 
         pos.undoMakeMove();
@@ -157,8 +165,8 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
     vl = pos.repStatus();
     if (vl) return pos.repValue(vl);
  
-    // 2. 达到极限深度 QUIESC_LIMIT 返回估值
-    if (pos.distance == QUIESC_LIMIT) return evaluate();
+    // 2. 达到极限深度 DEPTH 返回估值
+    if (pos.distance == DEPTH_LIMIT) return evaluate();
 
     // 3. 生成着法
     if ((ischecked = pos.isChecked())) { // 被将军 生成全部着法

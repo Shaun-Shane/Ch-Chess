@@ -15,7 +15,7 @@
 #include "evaluate.cpp"
 #endif
 
-constexpr int32_t QUIESC_LIMIT = 48; // 静态搜索限定深度
+constexpr int32_t DEPTH_LIMIT = 48; // 静态搜索限定深度
 
 constexpr int32_t NULL_DEPTH = 2; // 空着减去的深度
 
