@@ -1,6 +1,6 @@
-// !使用命令行编译时注释掉!
+// !使用命令行编译时注释掉! 使用 code runner 不要注释!
 // #define VSC_DEBUG
-// 使用 ucci 时注释掉
+// 不使用 ucci 时注释掉 search.cpp 中也有
 #define USE_UCCI
 
 #ifdef VSC_DEBUG
@@ -54,6 +54,7 @@
 #include "windows.h"
 
 int main() {
+    // freopen("debug.out", "w", stdout);
     //ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr);
     static Agent ai;
 

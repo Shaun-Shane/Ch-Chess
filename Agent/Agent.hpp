@@ -1,6 +1,3 @@
-#ifndef AGENT_HPP
-#define AGENT_HPP
-
 #ifndef VSC_DEBUG
 #include "ucci.hpp"
 #include "search.h"
@@ -33,6 +30,8 @@ struct Agent {
     // debug 双方分数
     void printVl();
 
+    void ucciPrintFile(FILE* fpw, std::pair<int32_t, int32_t> result);
+
     // 己方颜色 默认红色
     bool aiSide = RED;
 };
@@ -41,8 +40,9 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
     pos.fromFen(UcciComm.szFenStr);
     for (int i = 0; i < UcciComm.nMoveNum; i++) {
         std::string mvStr = UcciComm.lpdwMovesCoord[i];
-        pos.movePiece(mvStr);
-        pos.changeSide();
+        pos.makeMove(STR_TO_MOVE(mvStr)); // makeMove 会 changeSide
+        // 吃子则 moveList 清空
+        if (pos.moveList[pos.moveNum - 1].cap) pos.moveNum = 0;
     }
 }
 
@@ -55,6 +55,9 @@ void Agent::run1() {
     pos.fromFen(cszStartFen);
     println("ucciok");
     std::pair<int32_t, int32_t> result;
+    FILE *fpw = NULL;
+    fpw = fopen("output.txt", "w");
+    fclose(fpw);
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
@@ -64,16 +67,23 @@ void Agent::run1() {
                 this->buildPos(UcciComm);
                 break;
             case UCCI_COMM_GO:
+
                 result = searchMain();
+                std::cout << "info message "
+                          << "asdfasfasd" << std::endl;
+                fflush(stdout);
                 std::cout << "bestmove " << MOVE_TO_STR(result.second)
                           << std::endl;
-                pos.movePiece(result.second);
+                pos.makeMove(result.second), pos.changeSide();
                 fflush(stdout);
-                // pos.debug();
-                // std::cout.flush();
+
+                fpw = fopen("output.txt", "rt+");
+                this->ucciPrintFile(fpw, result);
+                fclose(fpw);
                 break;
             case UCCI_COMM_QUIT:
                 bQuit = true;
+
                 break;
             default:
                 break;
@@ -99,9 +109,10 @@ void Agent::run_debug() {
             auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
             std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
-            pos.movePiece(result.second);
+            pos.makeMove(result.second), pos.changeSide();
             pos.debug();
             std::cout << "vlBest: " << result.first << std::endl;
+            std::cout << "repStatus: " << pos.repStatus() << std::endl;
         } else if (opt == "move") {
             move();
             // printVl();
@@ -139,11 +150,37 @@ void Agent::set() {
 void Agent::move() {
     std::string s;
     std::cin >> s;
-    pos.movePiece(s);
+    // pos.movePiece(s);
+    pos.makeMove(STR_TO_MOVE(s));
+    pos.changeSide();
+    pos.debug();
+    // std::cout << pos.repStatus() << std::endl;
 }
 
 void Agent::printVl() {
     std::cout << "scores: " << pos.vlRed << " " << pos.vlBlack << std::endl;
 }
 
-#endif
+void Agent::ucciPrintFile(FILE* fpw, std::pair<int32_t, int32_t> result) {
+    fseek(fpw, 0, 2);
+    // 输出棋盘
+    fprintf(fpw, "  a b c d e f g h i\n");
+    for (int32_t y = Y_TO; y >= Y_FROM; y--) { // 行
+        fprintf(fpw, "%d|", y - Y_FROM);
+        for (int32_t x = X_FROM; x <= X_TO; x++) { // 列
+            auto pc = pos.squares[COORD_XY(x, y)]; // (x, y) 处棋子
+            if (pc == 0) fprintf(fpw, "* ");
+            else if (pc < 32) { // 红
+                fprintf(fpw, "%c ", ptToChar(PIECE_TYPE(pc)));
+            } else {
+                fprintf(fpw, "%c ", (char)tolower(ptToChar(PIECE_TYPE(pc))));
+            }
+        }
+        fprintf(fpw, "|%d\n", y - Y_FROM);
+    }
+    fprintf(fpw, "  a b c d e f g h i\n");
+
+    fprintf(fpw, "vlBest: %d\n", result.first);
+    fprintf(fpw, "repStatus: %d\n", pos.repStatus());
+    fprintf(fpw, "\n");
+}
