@@ -1,4 +1,6 @@
 #include "Zobrist.h"
+#include <stdlib.h>
+#include <time.h>
 
 int binarySearchLib(const Library lib[], unsigned int lock, int n) {
     int l = 0, r = n - 1;
@@ -117,6 +119,22 @@ int Zobrist::getMoveFromLib(int squares[], int sidePlayer,
     }
     //将所有走法按估值排序
     std::sort(libVector.begin(), libVector.end(), comp);
-    //返回值最大的走法
-    return libVector.front().moveInfo;
+    //以价值为权值随机选择一种走法
+    int totVal = 0, i;
+    for (i = 0; i < libVector.size(); i++)
+    {
+        totVal += libVector[i].moveValue;
+    }
+    srand(time(0));
+    int randNum = (rand() % totVal + totVal) % totVal + 1;
+    totVal = 0;
+    int select = -1;
+    while (1)
+    {
+        select++;
+        totVal += libVector[select].moveValue;
+        if (totVal >= randNum)
+            break;
+    }
+    return libVector[select].moveInfo;
 }
