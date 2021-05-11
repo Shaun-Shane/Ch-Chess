@@ -117,6 +117,14 @@ int Zobrist::getMoveFromLib(int squares[], int sidePlayer,
     }
     //将所有走法按估值排序
     std::sort(libVector.begin(), libVector.end(), comp);
-    //返回值最大的走法
+    
+    srand(time(nullptr));
+
+    int32_t mod = std::min((int)libVector.size(), 6), selected(0);
+    selected = rand() % mod;
+
+    if (selected < 3) return libVector[0].moveInfo;
+    if (selected < 5 && libVector.size() > 1) return libVector[1].moveInfo;
+    if (selected == 5 && libVector.size() > 2) return libVector[2].moveInfo;
     return libVector.front().moveInfo;
 }

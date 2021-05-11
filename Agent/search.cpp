@@ -32,7 +32,7 @@ std::pair<int32_t, int32_t> searchMain() {
             fprintf(fpw, "depth: %d, time: %lld\n", depth, (long long)(clock() - searchSt));
             fclose(fpw);
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC) {
+        if (clock() - searchSt > CLOCKS_PER_SEC * 3) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
@@ -48,7 +48,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
     int32_t vlBest(-MATE_VALUE), vl;
     int32_t mvBest(0), mv;
     
-    pos.generateMoves();
+    pos.genMovesInit();
     while ((mv = pos.nextMove())) {
         if (!pos.makeMove(mv)) continue;
         // 判断能否吃掉敌方将军; 注意 makeMove 后 sidePly 变化
@@ -114,7 +114,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     int32_t vlBest(-MATE_VALUE);
     int32_t mvBest(0), mv, hashFlag = HASH_ALPHA;
 
-    pos.generateMoves(pos.mvHash[pos.distance]);
+    pos.genMovesInit(pos.mvHash[pos.distance]);
     while ((mv = pos.nextMove())) {
        if (!pos.makeMove(mv)) continue;
 
