@@ -7,7 +7,7 @@ void Position::resetMvKillerHash() {
     this->phase[this->distance] = PHASE::HASH; // 从置换表启发开始
 }
 
-void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
+void Position::genMovesInit(int32_t mvHash) { // mvHash 默认为 0
     this->resetMvKillerHash();
 
     if (this->isChecked()) { // 处于被将军状态 禁用杀手启发

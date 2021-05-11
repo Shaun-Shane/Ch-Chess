@@ -35,7 +35,7 @@ constexpr int32_t PAWN_TO = 15;     // 卒
 
 enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
 
-constexpr bool DEL_PIECE = true;   // 添加棋子
+constexpr bool DEL_PIECE = true;   // 删除棋子
 
 constexpr int32_t MATE_VALUE = 1e4; // 将军
 constexpr int32_t BAN_VALUE = MATE_VALUE - 100; // 长将判负
@@ -66,7 +66,7 @@ inline int32_t COORD_XY(int32_t x, int32_t y) {
     return x + (y << 4);
 }
 
-// 根据 sq 0 ~ 255 返回列数 y 0 ~ 16
+// 根据 sq 0 ~ 255 返回行数 y 0 ~ 16
 inline int32_t GET_Y(int32_t sq) {
     return sq >> 4;
 }
@@ -118,22 +118,22 @@ inline bool SELF_SIDE(int32_t sq, int32_t side) {
 }
 
 // 返回向前走一步后的位置 sq
-inline int SQ_FORWARED(int32_t sq, int32_t side) {
+inline int32_t SQ_FORWARED(int32_t sq, int32_t side) {
     return sq + 16 - (side << 5);
 }
 
 // 镜像后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
-inline int SQ_FLIP(int sq) {
+inline int32_t SQ_FLIP(int32_t sq) {
     return 254 - sq;
 }
 
 // 如果两位置在同一行，返回 true
-inline bool SAME_Y(int src, int dst) {
+inline bool SAME_Y(int32_t src, int32_t dst) {
     return ((src ^ dst) & 0xf0) == 0;
 }
 
 // 如果两位置在同一列，返回 true
-inline bool SAME_X(int src, int dst) {
+inline bool SAME_X(int32_t src, int32_t dst) {
     return ((src ^ dst) & 0x0f) == 0;
 }
 
@@ -285,7 +285,7 @@ struct Position {
     
 
     // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
-    void generateMoves(int32_t mvHash = 0);
+    void genMovesInit(int32_t mvHash = 0);
     // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
     void genAllMoves(int32_t mvHash = 0);
     // 吃子着法生成 见 genMoves.cpp
