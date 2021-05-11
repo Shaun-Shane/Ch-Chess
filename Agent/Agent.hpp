@@ -47,6 +47,7 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
 }
 
 void Agent::run1() {
+    pos.initBit(); // 初始化位行、位列
     if (bootline() != UCCI_COMM_UCCI) {
         return;
     }
@@ -94,6 +95,7 @@ void Agent::run1() {
 }
 
 void Agent::run_debug() {
+    pos.initBit(); // 初始化位行、位列
     while (true) {
         std::cout << "$ ";
         std::cout.flush();

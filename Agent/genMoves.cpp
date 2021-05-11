@@ -199,7 +199,7 @@ void Position::sortMoves() {
 // 生成吃子着法
 void Position::genCapMoves() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
-    int32_t src, dst, i, j, k, delta;
+    int32_t src, dst, i, j, k;
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
@@ -253,39 +253,27 @@ void Position::genCapMoves() {
     // 5. 生成 ROCK 吃子走法
     for (i = ROOK_FROM; i <= ROOK_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            delta = KING_DELTA[j];
-            dst = src + delta; // 从起点开始，沿着方向 delta 走一步
-            while (IN_BOARD(dst)) { // 终点在棋盘内
-                if (this->squares[dst] & sideTag) break; // 遇到己方棋子 停止
-                if (this->squares[dst]) {
-                    ADD_CAP_MOVE();
-                    break; // 吃子 停下
-                }
-                dst += delta; // 沿着方向 delta 走一步
-            }
-        }
+        dst = this->getRookCapY(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getRookCapY(src, true);
+        ADD_CAP_MOVE();
+        dst = this->getRookCapX(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getRookCapX(src, true);
+        ADD_CAP_MOVE();
     }
 
     // 6. 生成 CANNON 吃子走法
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            delta = KING_DELTA[j];
-            dst = src + delta; // 从起点开始，沿着方向 delta 走一步
-            while (IN_BOARD(dst)) { // 终点在棋盘内
-                if (this->squares[dst]) break; // 遇到棋子 停止
-                dst += delta; // 沿着方向 delta 走一步
-            }
-            dst += delta; // 检查是否能吃子
-            while (IN_BOARD(dst)) {
-                if (this->squares[dst]) {
-                    ADD_CAP_MOVE();
-                    break; // 遇到一个棋子则停下
-                }
-                dst += delta;
-            }
-        }
+        dst = this->getCannonCapY(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getCannonCapY(src, true);
+        ADD_CAP_MOVE();
+        dst = this->getCannonCapX(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getCannonCapX(src, true);
+        ADD_CAP_MOVE();
     }
 
     // 7. 生成 PAWN 吃子走法

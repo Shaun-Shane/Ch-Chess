@@ -293,7 +293,7 @@ void Position::initBit() {
         }
     }
 
-    // 生成竖向御值吃子数组
+    // 生成竖向预置吃子数组
     for (int32_t i = 0; i < 10; i++) { // 枚举所在行
         for (int32_t st = 0; st < 1024; st++) { // 枚举列状态
             for (int32_t j = i + 1, cnt = 0; j < 10; j++) { // 枚举上方(sq大)棋子
@@ -321,6 +321,7 @@ void Position::initBit() {
     }
 }
 
+// 返回 Rook 左右吃子的位置
 int32_t Position::getRookCapX(int32_t src, bool tag) {
     int32_t x = rookCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
     return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
@@ -370,7 +371,8 @@ void Position::addPiece(int32_t sq, int32_t pc, bool del) {
 
         this->squares[sq] = pc, this->pieces[pc] = sq;
     }
-    // this->zobr.Xor(PreGen.zobrTable[pt][sq]);
+    this->stateY[GET_Y(sq)] ^= bitMaskY[sq];
+    this->stateX[GET_X(sq)] ^= bitMaskX[sq];
     this->zobrist->zobristUpdateMove(sq, pc);
 }
 
