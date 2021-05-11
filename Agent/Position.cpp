@@ -16,6 +16,12 @@ Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
 int32_t killerTable[MAX_DISTANCE][2] = {0};
+int32_t rookCapX[9][1 << 9][2] = {0};
+int32_t cannonCapX[9][1 << 9][2] = {0};
+int32_t rookCapY[10][1 << 10][2] = {0};
+int32_t cannonCapY[10][1 << 10][2] = {0};
+int32_t bitMaskY[256] = {0}, bitMaskX[256] = {0};
+
 
 // 用于判断棋子是否在棋盘上
 const int32_t _IN_BOARD[256] = {
@@ -242,10 +248,108 @@ int32_t STR_TO_MOVE(std::string mvStr) {
     return MOVE(src, dst);
 }
 
+// 初始化位行列
+void Position::initBit() {
+    memset(rookCapY, -1, sizeof(rookCapY));
+    memset(cannonCapY, -1, sizeof(cannonCapY));
+    memset(rookCapX, -1, sizeof(rookCapX));
+    memset(cannonCapX, -1, sizeof(cannonCapX));
+
+    // 初始化 bitMask，行Y的 bitMask 通过计算 X 获得
+    for (int32_t sq = 0; sq < 256; sq++) {
+        if (IN_BOARD(sq)) {
+            bitMaskY[sq] = 1 << (GET_X(sq) - X_FROM);
+            bitMaskX[sq] = 1 << (GET_Y(sq) - Y_FROM);
+        } else {
+            bitMaskY[sq] = 0;
+            bitMaskX[sq] = 0;
+        }
+    }
+
+    // 生成横向预置吃子数组
+    for (int32_t i = 0; i < 9; i++) { // 枚举所在列
+        for (int32_t st = 0; st < 512; st++){ // 枚举行状态
+            for (int32_t j = i + 1, cnt = 0; j < 9; j++) { // 枚举右侧棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapX[i][st][1] = j + X_FROM;
+                    else if (cnt == 2) {
+                        cannonCapX[i][st][1] = j + X_FROM;
+                        break;
+                    }
+                }
+            }
+
+            for (int32_t j = i - 1, cnt = 0; j >= 0; j--) { // 枚举左侧棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapX[i][st][0] = j + X_FROM;
+                    else if (cnt == 2) {
+                        cannonCapX[i][st][0] = j + X_FROM;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 生成竖向御值吃子数组
+    for (int32_t i = 0; i < 10; i++) { // 枚举所在行
+        for (int32_t st = 0; st < 1024; st++) { // 枚举列状态
+            for (int32_t j = i + 1, cnt = 0; j < 10; j++) { // 枚举上方(sq大)棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapY[i][st][1] = j + Y_FROM;
+                    else if (cnt == 2) {
+                        cannonCapY[i][st][1] = j + Y_FROM;
+                        break;
+                    }
+                }
+            }
+
+            for (int32_t j = i - 1, cnt = 0; j >= 0; j--) { // 枚举下方(sq小)棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapY[i][st][0] = j + Y_FROM;
+                    else if (cnt == 2) {
+                        cannonCapY[i][st][0] = j + Y_FROM;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+int32_t Position::getRookCapX(int32_t src, bool tag) {
+    int32_t x = rookCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
+    return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
+}
+
+// 返回 Cannon 左右吃子的位置
+int32_t Position::getCannonCapX(int32_t src, bool tag) {
+    int32_t x = cannonCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
+    return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
+}
+
+// 返回 Rook 上下吃子的位置
+int32_t Position::getRookCapY(int32_t src, bool tag) {
+    int32_t y = rookCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
+    return y == -1 ? 0 : COORD_XY(GET_X(src), y);
+}
+
+// 返回 Cannon 上下吃子的位置
+int32_t Position::getCannonCapY(int32_t src, bool tag) {
+    int32_t y = cannonCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
+    return y == -1 ? 0 : COORD_XY(GET_X(src), y);
+}
+
 // 初始化
 void Position::clear() {
     memset(this->squares, 0, sizeof(this->squares));
     memset(this->pieces, 0, sizeof(this->pieces));
+    memset(this->stateY, 0, sizeof(this->stateY));
+    memset(this->stateX, 0, sizeof(this->stateX));
     this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
     this->vlRed = this->vlBlack = 0;
     this->moveNum = 0, this->distance = 0;

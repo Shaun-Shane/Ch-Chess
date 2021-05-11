@@ -52,6 +52,15 @@ constexpr int32_t Y_TO = 12;
 constexpr int32_t X_FROM = 3;
 constexpr int32_t X_TO = 11;
 
+// 车和炮位于某一列(0-9)，在行状态st下，能吃到的最左、最右子的列数
+extern int32_t rookCapX[9][1 << 9][2];
+extern int32_t cannonCapX[9][1 << 9][2];
+// 车和炮位于某一行(0-10)，在列状态st下，能吃到的最上、最下子的行数
+extern int32_t rookCapY[10][1 << 10][2];
+extern int32_t cannonCapY[10][1 << 10][2];
+// sq 在行、列 对应的二进制状态码
+extern int32_t bitMaskY[256], bitMaskX[256];
+
 // 用于判断棋子是否在棋盘上
 extern const int32_t _IN_BOARD[256];
 // 用于判断棋子是否在九宫内
@@ -236,6 +245,17 @@ int32_t STR_TO_MOVE(std::string mvStr);
 class Zobrist;
 
 struct Position {
+    // 初始化位行列
+    void initBit();
+    // 返回 Rook 左右吃子的位置
+    int32_t getRookCapX(int32_t src, bool tag);
+    // 返回 Cannon 左右吃子的位置
+    int32_t getCannonCapX(int32_t src, bool tag);
+    // 返回 Rook 上下吃子的位置
+    int32_t getRookCapY(int32_t src, bool tag);
+    // 返回 Cannon 上下吃子的位置
+    int32_t getCannonCapY(int32_t src, bool tag);
+
     // 初始化棋局数组
     void clear();
 
@@ -306,13 +326,15 @@ struct Position {
     // 棋子-棋盘联系组
     int32_t squares[256]; // 每个格子放的棋子，0 为无子
     int32_t pieces[48]; // 每个棋子放的位置，0 为棋子不存在
+    int32_t stateY[16]; // 每一行的二进制状态
+    int32_t stateX[16]; // 每一列的二进制状态
 
     int32_t sidePly; // 走子方，0 为 红方，1 为 黑方
 
     int32_t vlRed, vlBlack; // 红方、黑方估值
 
     int32_t moveNum, distance; // 着法数、搜索步数
-    MoveList moveList[MAX_DISTANCE << 2]; // 着法列标
+    MoveList moveList[MAX_DISTANCE << 2]; // 着法列表
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
