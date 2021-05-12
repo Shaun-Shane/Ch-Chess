@@ -111,7 +111,13 @@ void Agent::run_debug() {
             auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
             std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
-            pos.makeMove(result.second), pos.changeSide();
+            
+            if (!pos.makeMove(result.second)){
+                std::cout << "error" << std::endl;
+                assert(false);
+            };
+
+            pos.changeSide();
             pos.debug();
             std::cout << "vlBest: " << result.first << std::endl;
             std::cout << "repStatus: " << pos.repStatus() << std::endl;
@@ -152,7 +158,6 @@ void Agent::set() {
 void Agent::move() {
     std::string s;
     std::cin >> s;
-    // pos.movePiece(s);
     pos.makeMove(STR_TO_MOVE(s));
     pos.changeSide();
     pos.debug();

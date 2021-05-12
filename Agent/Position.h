@@ -80,7 +80,7 @@ inline int32_t GET_Y(int32_t sq) {
     return sq >> 4;
 }
 
-// 根据 sq 0 ~ 255 返回列数 y 0 ~ 16
+// 根据 sq 0 ~ 255 返回列数 x 0 ~ 16
 inline int32_t GET_X(int32_t sq) {
     return sq & 15;
 }

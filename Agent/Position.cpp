@@ -371,8 +371,12 @@ void Position::addPiece(int32_t sq, int32_t pc, bool del) {
 
         this->squares[sq] = pc, this->pieces[pc] = sq;
     }
-    this->stateY[GET_Y(sq)] ^= bitMaskY[sq];
-    this->stateX[GET_X(sq)] ^= bitMaskX[sq];
+
+    if (pc) { // pc 不为 0 才修改
+        this->stateY[GET_Y(sq)] ^= bitMaskY[sq];
+        this->stateX[GET_X(sq)] ^= bitMaskX[sq];
+    }
+    
     this->zobrist->zobristUpdateMove(sq, pc);
 }
 
@@ -521,32 +525,18 @@ int32_t Position::drawValue() {
     return (this->distance & 1) ? DRAW_VALUE : -DRAW_VALUE;
 }
 
-#define CHECK_PIECE()                   \
-    {                                 \
-        src = src + delta;            \
-        while (src != dst) {          \
-            if (this->squares[src]) { \
-                checked = false;      \
-                break;                \
-            }                         \
-            src += delta;             \
-        }                             \
-    }
 // 判断是否被将军 是则返回 true
 int32_t Position::isChecked() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
     int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
-    int32_t src, dst, delta, checked, i, j, k;
+    int32_t src, dst, checked, i, j, k;
+    bool dirTag = false;
     
-    // 1. 检查对将
+    // 1. 检查对将 通过位列实现
     src = this->pieces[sideTag + KING_FROM];
     dst = this->pieces[oppSideTag + KING_FROM];
-    checked = true;
-    if (SAME_X(src, dst)) { // 相同列
-        delta = (dst > src) ? 16 : -16;
-        CHECK_PIECE();
-        if (checked) return true;
-    }
+    if (dst > src) dirTag = true; // dst 大 tag 为 true
+    if (this->getRookCapY(src, dirTag) == dst) return true;
     
     // 2. 检查马
     src = this->pieces[sideTag + KING_FROM];
@@ -560,43 +550,30 @@ int32_t Position::isChecked() {
         }
     }
 
-    // 3. 检查车
+    // 3. 检查车 通过位行、列实现
     for (i = ROOK_FROM; i <= ROOK_TO; i++) {
         src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 ROOK 位置
-        checked = true;
         if (SAME_X(src, dst)) { // 同一列
-            delta = (dst > src) ? 16 : -16;
-            CHECK_PIECE();
-            if (checked) return true;
+            dirTag = (dst > src) ? true : false;
+            if (dst == this->getRookCapY(src, dirTag)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
-            delta = (dst > src)? 1 : -1;
-            CHECK_PIECE();
-            if (checked) return true;
+            dirTag = (dst > src) ? true : false;
+            if (dst == this->getRookCapX(src, dirTag)) return true;
         }
     }
 
-    // 4. 检查炮
+    // 4. 检查炮 通过位行、列实现
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
         src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 CANNON 位置
         checked = true;
         if (SAME_X(src, dst)) { // 同一列
-            delta = (dst > src) ? 16 : -16;
-            CHECK_PIECE();
-            if (!checked) { // 将与炮中间有子
-                checked = true;
-                CHECK_PIECE(); // 判断子与炮之间是否还有子，若有 checked = false
-                if (checked) return true;
-            }
+            dirTag = (dst > src) ? true : false;
+            if (dst == this->getCannonCapY(src, dirTag)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
-            delta = (dst > src)? 1 : -1;
-            CHECK_PIECE();
-            if (!checked) { // 将与炮中间有子
-                checked = true;
-                CHECK_PIECE(); // 判断子与炮之间是否还有子，若有 checked = false
-                if (checked) return true;
-            }
+            dirTag = (dst > src) ? true : false;
+            if (dst == this->getCannonCapX(src, dirTag)) return true;
         }
     }
 
@@ -623,7 +600,7 @@ int32_t Position::isLegalMove(int32_t mv) {
     // 终点是己方棋子
     if (this->squares[dst] & sideTag) return false;
 
-    int32_t pin(0), delta(0);
+    int32_t pin(0), dirTag(0);
     switch(PIECE_TYPE(this->squares[src])) { // 判断己方棋子类型
         case PIECE_KING: // 将（帅）
             return IN_FORT(dst) && KING_SPAN(src, dst);
@@ -637,23 +614,19 @@ int32_t Position::isLegalMove(int32_t mv) {
             return pin != src && !this->squares[pin];
         case PIECE_ROOK:
         case PIECE_CANNON: // 车和炮判断                                            一样
-            if (SAME_X(src, dst)) delta = (dst > src) ? 16 : -16; // 同一列
-            else if (SAME_Y(src, dst)) delta = (dst > src) ? 1 : -1; // 同一行
+            if (SAME_X(src, dst)) { // 同一列
+                dirTag = dst > src ? true : false;
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK)
+                    return dst == this->getRookCapX(src, dirTag);
+                else return dst == this->getCannonCapX(src, dirTag);
+            }
+            else if (SAME_Y(src, dst)) {
+                dirTag = dst > src ? true : false;
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK)
+                    return dst == this->getRookCapX(src, dirTag);
+                else return dst == this->getCannonCapX(src, dirTag);
+            }
             else return false; // 不在同一列同一行 不合法
-
-            pin = src + delta; // 向前走一步 再继续直到遇到棋子
-            while (pin != dst && !this->squares[pin]) pin += delta;
-
-            if (pin == dst)  // 起点与终点间没有棋子
-                return !this->squares[dst] || PIECE_TYPE(this->squares[src]) == PIECE_ROOK;
-
-            // 此时只可能是炮且跳吃
-            if (!this->squares[dst] || PIECE_TYPE(this->squares[src]) != PIECE_CANNON)
-                return false;
-
-            pin += delta; // 向前走一步
-            while (pin != dst && !this->squares[pin]) pin += delta;
-            return pin == dst; // 判断中间是否还有子
 
         case PIECE_PAWN:
             // 已过河，可以向左右两个方向走
