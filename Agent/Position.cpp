@@ -599,7 +599,7 @@ int32_t Position::isLegalMove(int32_t mv) {
     // 终点是己方棋子
     if (this->squares[dst] & sideTag) return false;
 
-    int32_t pin(0), dirTag(0);
+    int32_t pin(0), dirTag(0), rCapDst(0), cCapDist(0);
     switch(PIECE_TYPE(this->squares[src])) { // 判断己方棋子类型
         case PIECE_KING: // 将（帅）
             return IN_FORT(dst) && KING_SPAN(src, dst);
@@ -615,17 +615,35 @@ int32_t Position::isLegalMove(int32_t mv) {
         case PIECE_CANNON: // 车和炮判断                                            一样
             if (SAME_X(src, dst)) { // 同一列
                 dirTag = dst > src ? true : false;
-                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK)
-                    return dst == this->getRookCapX(src, dirTag);
-                else return dst == this->getCannonCapX(src, dirTag);
-            }
-            else if (SAME_Y(src, dst)) {
+                rCapDst = this->getRookCapY(src, dirTag);
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
+                    if (rCapDst == dst) return true; // 吃子走法
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                } else {
+                    cCapDist = this->getCannonCapY(src, dirTag);
+                    if (cCapDist == dst) return true; // 吃子走法
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                }
+            } else if (SAME_Y(src, dst)) {
                 dirTag = dst > src ? true : false;
-                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK)
-                    return dst == this->getRookCapX(src, dirTag);
-                else return dst == this->getCannonCapX(src, dirTag);
-            }
-            else return false; // 不在同一列同一行 不合法
+                rCapDst = this->getRookCapX(src, dirTag);
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
+                    if (rCapDst == dst) return true; // 吃子走法
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                } else {
+                    cCapDist = this->getCannonCapX(src, dirTag);
+                    if (cCapDist == dst) return true; // 吃子走法
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                }
+            } else return false; // 不在同一列同一行 不合法
 
         case PIECE_PAWN:
             // 已过河，可以向左右两个方向走
