@@ -529,7 +529,7 @@ int32_t Position::drawValue() {
 int32_t Position::isChecked() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
     int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
-    int32_t src, dst, checked, i, j, k;
+    int32_t src, dst, i, j, k;
     bool dirTag = false;
     
     // 1. 检查对将 通过位列实现
@@ -567,7 +567,6 @@ int32_t Position::isChecked() {
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
         src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 CANNON 位置
-        checked = true;
         if (SAME_X(src, dst)) { // 同一列
             dirTag = (dst > src) ? true : false;
             if (dst == this->getCannonCapY(src, dirTag)) return true;

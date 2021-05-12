@@ -1,6 +1,6 @@
 #include "search.h"
 // 不使用 ucci 时注释掉 main.cpp 中也有
-// #define USE_UCCI
+#define USE_UCCI
 
 time_t searchSt;
 
@@ -12,9 +12,9 @@ std::pair<int32_t, int32_t> searchMain() {
     auto searchSt = clock();
     int32_t bestVl, bestMv;
 
-    // bestMv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
-    // if (bestMv && pos.isLegalMove(bestMv))
-    //     return {0, bestMv};
+    bestMv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
+    if (bestMv && pos.isLegalMove(bestMv))
+        return {0, bestMv};
 
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
     memset(killerTable, 0, sizeof(killerTable));

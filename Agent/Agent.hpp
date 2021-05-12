@@ -114,7 +114,7 @@ void Agent::run_debug() {
             
             if (!pos.makeMove(result.second)){
                 std::cout << "error" << std::endl;
-                assert(false);
+                exit(0);
             };
 
             pos.changeSide();
