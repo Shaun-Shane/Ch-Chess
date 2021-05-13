@@ -520,7 +520,7 @@ int32_t Position::nullOkay() {
 }
 // 空步搜索得到的分值是否有效
 int32_t Position::nullSafe() {
-    return (this->sidePly ? this->vlBlack : this->vlRed) > 200;
+    return (this->sidePly ? this->vlBlack : this->vlRed) > 250;
 }
 
 int32_t Position::repValue(int32_t vl) {
@@ -545,13 +545,11 @@ int32_t Position::isChecked() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
     int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
     int32_t src, dst, i, j, k;
-    bool dirTag = false;
     
     // 1. 检查对将 通过位列实现
     src = this->pieces[sideTag + KING_FROM];
     dst = this->pieces[oppSideTag + KING_FROM];
-    if (dst > src) dirTag = true; // dst 大 tag 为 true
-    if (this->getRookCapY(src, dirTag) == dst) return true;
+    if (this->getRookCapY(src, dst > src) == dst) return true;
     
     // 2. 检查马
     src = this->pieces[sideTag + KING_FROM];
@@ -570,11 +568,9 @@ int32_t Position::isChecked() {
         src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 ROOK 位置
         if (SAME_X(src, dst)) { // 同一列
-            dirTag = (dst > src) ? true : false;
-            if (dst == this->getRookCapY(src, dirTag)) return true;
+            if (dst == this->getRookCapY(src, dst > src)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
-            dirTag = (dst > src) ? true : false;
-            if (dst == this->getRookCapX(src, dirTag)) return true;
+            if (dst == this->getRookCapX(src, dst > src)) return true;
         }
     }
 
@@ -583,11 +579,9 @@ int32_t Position::isChecked() {
         src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 CANNON 位置
         if (SAME_X(src, dst)) { // 同一列
-            dirTag = (dst > src) ? true : false;
-            if (dst == this->getCannonCapY(src, dirTag)) return true;
+            if (dst == this->getCannonCapY(src, dst > src)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
-            dirTag = (dst > src) ? true : false;
-            if (dst == this->getCannonCapX(src, dirTag)) return true;
+            if (dst == this->getCannonCapX(src, dst > src)) return true;
         }
     }
 

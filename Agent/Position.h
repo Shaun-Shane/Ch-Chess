@@ -52,13 +52,13 @@ constexpr int32_t Y_TO = 12;
 constexpr int32_t X_FROM = 3;
 constexpr int32_t X_TO = 11;
 
-// 车和炮位于某一列(0-9)，在行状态st下，能吃到的最左、最右子的列数
+// 车和炮位于某一列(0-8)，在行状态st下，能吃到的最左、最右子的列数(0-15)
 extern int32_t rookCapX[9][1 << 9][2];
 extern int32_t cannonCapX[9][1 << 9][2];
-// 车和炮位于某一行(0-10)，在列状态st下，能吃到的最上、最下子的行数
+// 车和炮位于某一行(0-9)，在列状态st下，能吃到的最上、最下子的行数(0-15)
 extern int32_t rookCapY[10][1 << 10][2];
 extern int32_t cannonCapY[10][1 << 10][2];
-// 炮位于某一行(0-10)，在列状态st下， 能隔两子吃到的最上、最下子的行数
+// 炮位于某一行(0-9)，在列状态st下， 能隔两子吃到的最上、最下子的行数(0-15)
 extern int32_t cannonSupperCapY[10][1 << 10][2];
 // sq 在行、列 对应的二进制状态码
 extern int32_t bitMaskY[256], bitMaskX[256];
@@ -133,7 +133,7 @@ inline int32_t SQ_FORWARED(int32_t sq, int32_t side) {
     return sq + 16 - (side << 5);
 }
 
-// 镜像后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
+// 水平翻转后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
 inline int32_t SQ_FLIP(int32_t sq) {
     return 254 - sq;
 }
@@ -307,6 +307,8 @@ struct Position {
 
     // 仕的棋形评估 包括空头炮、中炮、沉底炮、窝心马 见 evaluate.cpp
     int32_t advisorShape();
+    // 车的灵活性
+    int32_t rookMobility();
     // 局面评估函数
     int32_t evaluate();
 
@@ -328,12 +330,12 @@ struct Position {
 
     // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
     void genMovesInit(int32_t mvHash = 0);
-    // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
-    void genAllMoves(int32_t mvHash = 0);
+    // 全部着法生成
+    void genAllMoves();
+    // 非吃子着法生成 见 genMoves.cpp 帅仕相马车炮兵
+    void genNonCapMoves();
     // 吃子着法生成 见 genMoves.cpp
     void genCapMoves();
-    // 对着法排序 见 genMoves.cpp
-    void sortMoves();
     // 将 mvKiller, mvHash 清零
     void resetMvKillerHash();
 
