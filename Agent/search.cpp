@@ -74,7 +74,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
         if (vl > vlBest) {
             vlBest = vl, mvBest = mv;
             if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) { // 增加走法随机性
-                vlBest += ((rand() - RAND_MAX) % 7);
+                vlBest += ((rand() - RAND_MAX) % 5);
                 vlBest = (vlBest == pos.drawValue()) ? vlBest - 1 : vlBest;
             }
         }
@@ -180,11 +180,9 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
             vlBest = vl;
             if (vl > alpha) alpha = vl;
         }
-        if (!ischecked) { // 将军未被威胁 仅生成吃子着法
-            pos.resetMvKillerHash();
-            // if (debug) std::cout << pos.distance << std::endl;
-            pos.genCapMoves();
-        }
+        // 未被截断，生成吃子着法
+        pos.resetMvKillerHash();
+        pos.genCapMoves();
     }
 
     pos.phase[pos.distance] = PHASE::OTHER; // 不进行其它启发
