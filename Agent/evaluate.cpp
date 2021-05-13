@@ -165,7 +165,7 @@ int32_t Position::advisorShape() {
                 PIECE_TYPE(squares[0x38]) == PIECE_ADVISOR) { // 底线双仕
                     for (i = SIDE_TAG(1) + CANNON_FROM; i <= SIDE_TAG(1) + CANNON_TO; i++) {
                         if (!(src = pieces[i])) continue;// 敌方炮位置
-                        if (SAME_X(src, dst)) {
+                        if (SAME_X(src, dst)) { // 炮与将在同一列
                             if (getRookCapY(src, dst > src) == dst)
                                 redPenalty += HOLLOW_THREAT[GET_Y(pieces[i])];  // 空头炮
                             else if (getCannonSupperCapY(src, dst > src) &&
@@ -180,8 +180,18 @@ int32_t Position::advisorShape() {
                     for (i = SIDE_TAG(1) + CANNON_FROM; i <= SIDE_TAG(1) + CANNON_TO; i++) {
                         if (!(src = pieces[i])) continue;// 敌方炮位置
                         if (SAME_X(src, dst)) {
-                            if (getCannonSupperCapY(src, dst > src) == dst) // 计算普通中炮威胁
-                                redPenalty += CENTRAL_THREAT[GET_Y(pieces[i])] >> 1;
+                            if (getCannonSupperCapY(src, dst > src) == dst) {// 计算普通中炮威胁
+                                redPenalty += (CENTRAL_THREAT[GET_Y(pieces[i])] >> 1);
+                                // 如果车在底线保护将帅，扣分
+                                for (int32_t j = SIDE_TAG(0) + ROOK_FROM; j <= SIDE_TAG(0) + ROOK_TO; j++) {
+                                    if (!(src = pieces[j])) continue; // 己方车位置
+                                    
+                                    if (SAME_Y(src, dst) &&
+                                        getRookCapX(src, dst > src) == dst) {
+                                        redPenalty += 80;
+                                    }
+                                }
+                            }
                         } else if (SAME_Y(src, dst)) { // 计算沉底炮威胁
                             if (getRookCapX(src, dst > src) == dst)
                                 redPenalty += BOTTOM_THREAT[GET_X(pieces[i])];
@@ -189,7 +199,7 @@ int32_t Position::advisorShape() {
                     }
             }
         } else if (dst == 0x47) { redPenalty += 20; } // 帅在花心，影响仕的行动
-    } else if (pieces[SIDE_TAG(1) + ROOK_FROM] && pieces[SIDE_TAG(1) + ROOK_FROM]) {
+    } else if (pieces[SIDE_TAG(1) + ROOK_FROM] && pieces[SIDE_TAG(1) + ROOK_TO]) {
         redPenalty += ADVISOR_LEAKAGE; // 缺仕怕双车
     }
 
@@ -197,10 +207,10 @@ int32_t Position::advisorShape() {
     if (pieces[SIDE_TAG(1) + ADVISOR_FROM] && pieces[SIDE_TAG(1) + ADVISOR_TO]) {
         if (dst == 0xc7) { // 将帅在原位
             if (PIECE_TYPE(squares[0xc6]) == PIECE_ADVISOR &&
-                PIECE_TYPE(squares[0xc8]) == PIECE_ADVISOR) { // 双仕
+                PIECE_TYPE(squares[0xc8]) == PIECE_ADVISOR) { // 底线双仕
                     for (i = SIDE_TAG(0) + CANNON_FROM; i <= SIDE_TAG(0) + CANNON_TO; i++) {
                         if (!(src = pieces[i])) continue;// 敌方炮位置
-                        if (SAME_X(src, dst)) {
+                        if (SAME_X(src, dst)) { // 炮与将在同一列
                             if (getRookCapY(src, dst > src) == dst)
                                 blackPenalty += HOLLOW_THREAT[15 - GET_Y(pieces[i])];  // 空头炮
                             else if (getCannonSupperCapY(src, dst > src) &&
@@ -215,8 +225,18 @@ int32_t Position::advisorShape() {
                     for (i = SIDE_TAG(0) + CANNON_FROM; i <= SIDE_TAG(0) + CANNON_TO; i++) {
                         if (!(src = pieces[i])) continue;// 敌方炮位置
                         if (SAME_X(src, dst)) {
-                            if (getCannonSupperCapY(src, dst > src) == dst) // 计算普通中炮威胁
-                                blackPenalty += CENTRAL_THREAT[15 - GET_Y(pieces[i])] >> 1;
+                            if (getCannonSupperCapY(src, dst > src) == dst) { // 计算普通中炮威胁
+                                blackPenalty += (CENTRAL_THREAT[15 - GET_Y(pieces[i])] >> 1);
+                                // 如果车在底线保护将帅，扣分
+                                for (int32_t j = SIDE_TAG(1) + ROOK_FROM; j <= SIDE_TAG(1) + ROOK_TO; j++) {
+                                    if (!(src = pieces[j])) continue; // 己方车位置
+                                    
+                                    if (SAME_Y(src, dst) &&
+                                        getRookCapX(src, dst > src) == dst) {
+                                        blackPenalty += 80;
+                                    }
+                                }
+                            }
                         } else if (SAME_Y(src, dst)) { // 计算沉底炮威胁
                             if (getRookCapX(src, dst > src) == dst)
                                 blackPenalty += BOTTOM_THREAT[GET_X(pieces[i])];
@@ -224,18 +244,62 @@ int32_t Position::advisorShape() {
                     }
             }
         } else if (dst == 0xb7) { blackPenalty += 20; } // 帅在花心，影响仕的行动
-    } else if (pieces[SIDE_TAG(0) + ROOK_FROM] && pieces[SIDE_TAG(0) + ROOK_FROM]) {
+    } else if (pieces[SIDE_TAG(0) + ROOK_FROM] && pieces[SIDE_TAG(0) + ROOK_TO]) {
         blackPenalty += ADVISOR_LEAKAGE; // 缺仕怕双车
     }
 
     return -redPenalty + blackPenalty;
 }
 
+int32_t Position::rookMobility() {
+    int32_t sd, i, sideTag, src, rookMob[2], x, y;
+    for (sd = 0; sd < 2; sd++) {
+        rookMob[sd] = 0, sideTag = SIDE_TAG(sd);
+        for (i = sideTag + ROOK_FROM; i <= sideTag + ROOK_TO; i++) {
+            if (!(src = pieces[i])) continue;
+            // 最右非吃子
+            x = rookCapX[GET_X(src) - X_FROM][stateY[GET_Y(src)]][1];
+            if (~x) {
+                if (!(squares[COORD_XY(x, GET_Y(src))] & sideTag)) rookMob[sd]++;
+                x--;
+            } else x = X_TO;
+            rookMob[sd] += x - GET_X(src);
+
+            // 最左非吃子
+            x = rookCapX[GET_X(src) - X_FROM][stateY[GET_Y(src)]][0];
+            if (~x) {
+                if (!(squares[COORD_XY(x, GET_Y(src))] & sideTag)) rookMob[sd]++;
+                x++;
+            } else x = X_FROM;
+            rookMob[sd] += GET_X(src)- x;
+
+            // 最上(sq大)非吃子
+            y = rookCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][1];
+            if (~y) {
+                if (!(squares[COORD_XY(GET_X(src), y)] & sideTag)) rookMob[sd]++;
+                y--;
+            } else y = Y_TO;
+            rookMob[sd] += y - GET_Y(src);
+
+            // 最下(sq小)非吃子
+            y = rookCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][0];
+            if (~y) {
+                if (!(squares[COORD_XY(GET_X(src), y)] & sideTag)) rookMob[sd]++;
+                y++;
+            } else y = Y_FROM;
+            rookMob[sd] += GET_Y(src) - y;
+        }
+    }
+    return rookMob[0] - rookMob[1];
+}
+
 int32_t Position::evaluate() {
     int32_t vl = vlRed - vlBlack;
 
-    // 对特殊棋形判断
-    // vl += advisorShape();
+    // 对特殊棋形评价
+    vl += advisorShape();
+    // 车的灵活性评价
+    vl += rookMobility();
 
     if (sidePly) vl = -vl + 3;
     else vl = vl + 3;
