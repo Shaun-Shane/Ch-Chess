@@ -1,4 +1,4 @@
-#include "evaluate.h"
+#include "Position.h"
 
 /* 棋子类型-位置价值表
  * 获取棋子类型见 PIECE_TYPE(pc) 函数
@@ -156,106 +156,92 @@ const int32_t BOTTOM_THREAT[16] = {
     0,  0,  0, 40, 30,  0,  0,  0,  0,  0, 30, 40,  0,  0,  0,  0
 };
 
-int32_t advisorShape() {
+int32_t Position::advisorShape() {
     int32_t redPenalty(0), blackPenalty(0);
-    int32_t src, dst(pos.pieces[SIDE_TAG(0) + KING_FROM]), cnt, i;
-    if (pos.pieces[SIDE_TAG(0) + ADVISOR_FROM] && pos.pieces[SIDE_TAG(0) + ADVISOR_TO]) {
+    int32_t src, dst(pieces[SIDE_TAG(0) + KING_FROM]), i;
+    if (pieces[SIDE_TAG(0) + ADVISOR_FROM] && pieces[SIDE_TAG(0) + ADVISOR_TO]) {
         if (dst == 0x37) { // 将帅在原位
-            if (PIECE_TYPE(pos.squares[0x36]) == PIECE_ADVISOR &&
-                PIECE_TYPE(pos.squares[0x38]) == PIECE_ADVISOR) { // 底线双仕
+            if (PIECE_TYPE(squares[0x36]) == PIECE_ADVISOR &&
+                PIECE_TYPE(squares[0x38]) == PIECE_ADVISOR) { // 底线双仕
                     for (i = SIDE_TAG(1) + CANNON_FROM; i <= SIDE_TAG(1) + CANNON_TO; i++) {
-                        if (!(src = pos.pieces[i])) continue;// 敌方炮位置
+                        if (!(src = pieces[i])) continue;// 敌方炮位置
                         if (SAME_X(src, dst)) {
-                            cnt = 0;
-                            for (src = src - 0x10; dst != src; src -= 0x10)
-                                if (pos.squares[src]) { if ((++cnt) > 2) break; }
-                            
-                            if (cnt == 0) redPenalty += HOLLOW_THREAT[GET_Y(pos.pieces[i])]; // 空头炮
-                            else if (cnt == 2 && (pos.squares[0x47] == 21 || pos.squares[0x47] == 22))
-                                redPenalty += CENTRAL_THREAT[GET_Y(pos.pieces[i])]; // 炮镇窝心马的威胁
+                            if (getRookCapY(src, dst > src) == dst)
+                                redPenalty += HOLLOW_THREAT[GET_Y(pieces[i])];  // 空头炮
+                            else if (getCannonSupperCapY(src, dst > src) &&
+                                     (squares[0x47] == 21 ||
+                                      squares[0x47] == 22))
+                                redPenalty += CENTRAL_THREAT[GET_Y(pieces[i])];  // 炮镇窝心马的威胁
                         }
                     }
-            } else if (PIECE_TYPE(pos.squares[0x47]) == PIECE_ADVISOR &&
-                       (PIECE_TYPE(pos.squares[0x36]) == PIECE_ADVISOR ||
-                        PIECE_TYPE(pos.squares[0x38]) == PIECE_ADVISOR)) { // 花心+底线仕
+            } else if (PIECE_TYPE(squares[0x47]) == PIECE_ADVISOR &&
+                       (PIECE_TYPE(squares[0x36]) == PIECE_ADVISOR ||
+                        PIECE_TYPE(squares[0x38]) == PIECE_ADVISOR)) { // 花心+底线仕
                     for (i = SIDE_TAG(1) + CANNON_FROM; i <= SIDE_TAG(1) + CANNON_TO; i++) {
-                        if (!(src = pos.pieces[i])) continue;// 敌方炮位置
+                        if (!(src = pieces[i])) continue;// 敌方炮位置
                         if (SAME_X(src, dst)) {
-                            cnt = 0;
-                            for (src = src - 0x10; dst != src; src -= 0x10)
-                                if (pos.squares[src]) { if ((++cnt) > 2) break; }
-                            // 计算普通中炮威胁
-                            if (cnt == 2) redPenalty += CENTRAL_THREAT[GET_Y(pos.pieces[i])] >> 2;
+                            if (getCannonSupperCapY(src, dst > src) == dst) // 计算普通中炮威胁
+                                redPenalty += CENTRAL_THREAT[GET_Y(pieces[i])] >> 1;
                         } else if (SAME_Y(src, dst)) { // 计算沉底炮威胁
-                            cnt = 0;
-                            int32_t delta = dst > src ? 1 : -1;
-                            for (src = src + delta; dst != src; src += delta)
-                                if (pos.squares[src]) { if ((++cnt) > 2) break; }
-                            if (cnt == 0) redPenalty += BOTTOM_THREAT[GET_X(pos.pieces[i])];
+                            if (getRookCapX(src, dst > src) == dst)
+                                redPenalty += BOTTOM_THREAT[GET_X(pieces[i])];
                         }
                     }
             }
         } else if (dst == 0x47) { redPenalty += 20; } // 帅在花心，影响仕的行动
-    } else if (pos.pieces[SIDE_TAG(1) + ROOK_FROM] && pos.pieces[SIDE_TAG(1) + ROOK_FROM]) {
+    } else if (pieces[SIDE_TAG(1) + ROOK_FROM] && pieces[SIDE_TAG(1) + ROOK_FROM]) {
         redPenalty += ADVISOR_LEAKAGE; // 缺仕怕双车
     }
 
-    dst = pos.pieces[SIDE_TAG(1) + KING_FROM]; // 获得黑方帅位置
-    if (pos.pieces[SIDE_TAG(1) + ADVISOR_FROM] && pos.pieces[SIDE_TAG(1) + ADVISOR_TO]) {
+    dst = pieces[SIDE_TAG(1) + KING_FROM]; // 获得黑方帅位置
+    if (pieces[SIDE_TAG(1) + ADVISOR_FROM] && pieces[SIDE_TAG(1) + ADVISOR_TO]) {
         if (dst == 0xc7) { // 将帅在原位
-            if (PIECE_TYPE(pos.squares[0xc6]) == PIECE_ADVISOR &&
-                PIECE_TYPE(pos.squares[0xc8]) == PIECE_ADVISOR) { // 双仕
+            if (PIECE_TYPE(squares[0xc6]) == PIECE_ADVISOR &&
+                PIECE_TYPE(squares[0xc8]) == PIECE_ADVISOR) { // 双仕
                     for (i = SIDE_TAG(0) + CANNON_FROM; i <= SIDE_TAG(0) + CANNON_TO; i++) {
-                        if (!(src = pos.pieces[i])) continue;// 敌方炮位置
+                        if (!(src = pieces[i])) continue;// 敌方炮位置
                         if (SAME_X(src, dst)) {
-                            cnt = 0;
-                            for (src = src + 0x10; dst != src; src += 0x10)
-                                if (pos.squares[src]) { if ((++cnt) > 2) break; }
-                            
-                            if (cnt == 0) blackPenalty += HOLLOW_THREAT[15- GET_Y(pos.pieces[i])]; // 空头炮
-                            else if (cnt == 2 && (pos.squares[0xb7] == 37 || pos.squares[0xb7] == 38))
-                                blackPenalty += CENTRAL_THREAT[15 - GET_Y(pos.pieces[i])]; // 炮镇窝心马的威胁
+                            if (getRookCapY(src, dst > src) == dst)
+                                blackPenalty += HOLLOW_THREAT[15 - GET_Y(pieces[i])];  // 空头炮
+                            else if (getCannonSupperCapY(src, dst > src) &&
+                                     (squares[0xb7] == 37 ||
+                                      squares[0xb7] == 38))
+                                blackPenalty += CENTRAL_THREAT[15 - GET_Y(pieces[i])];  // 炮镇窝心马的威胁
                         }
                     }
-            } else if (PIECE_TYPE(pos.squares[0xb7]) == PIECE_ADVISOR &&
-                       (PIECE_TYPE(pos.squares[0xc6]) == PIECE_ADVISOR ||
-                        PIECE_TYPE(pos.squares[0xc8]) == PIECE_ADVISOR)) { // 花心+底线仕
+            } else if (PIECE_TYPE(squares[0xb7]) == PIECE_ADVISOR &&
+                       (PIECE_TYPE(squares[0xc6]) == PIECE_ADVISOR ||
+                        PIECE_TYPE(squares[0xc8]) == PIECE_ADVISOR)) { // 花心+底线仕
                     for (i = SIDE_TAG(0) + CANNON_FROM; i <= SIDE_TAG(0) + CANNON_TO; i++) {
-                        if (!(src = pos.pieces[i])) continue;// 敌方炮位置
+                        if (!(src = pieces[i])) continue;// 敌方炮位置
                         if (SAME_X(src, dst)) {
-                            cnt = 0;
-                            for (src = src + 0x10; dst != src; src += 0x10)
-                                if (pos.squares[src]) { if ((++cnt) > 2) break; }
-                            // 计算普通中炮威胁
-                            if (cnt == 2) blackPenalty += CENTRAL_THREAT[15 - GET_Y(pos.pieces[i])] >> 2;
+                            if (getCannonSupperCapY(src, dst > src) == dst) // 计算普通中炮威胁
+                                blackPenalty += CENTRAL_THREAT[15 - GET_Y(pieces[i])] >> 1;
                         } else if (SAME_Y(src, dst)) { // 计算沉底炮威胁
-                            cnt = 0;
-                            int32_t delta = dst > src ? 1 : -1;
-                            for (src = src + delta; dst != src; src += delta)
-                                if (pos.squares[src]) { if ((++cnt) > 2) break; }
-                            if (cnt == 0) blackPenalty += BOTTOM_THREAT[GET_X(pos.pieces[i])];
+                            if (getRookCapX(src, dst > src) == dst)
+                                blackPenalty += BOTTOM_THREAT[GET_X(pieces[i])];
                         }
                     }
             }
         } else if (dst == 0xb7) { blackPenalty += 20; } // 帅在花心，影响仕的行动
-    } else if (pos.pieces[SIDE_TAG(0) + ROOK_FROM] && pos.pieces[SIDE_TAG(0) + ROOK_FROM]) {
+    } else if (pieces[SIDE_TAG(0) + ROOK_FROM] && pieces[SIDE_TAG(0) + ROOK_FROM]) {
         blackPenalty += ADVISOR_LEAKAGE; // 缺仕怕双车
     }
 
     return -redPenalty + blackPenalty;
 }
 
-int32_t evaluate() {
-    int32_t vl = pos.vlRed - pos.vlBlack;
+int32_t Position::evaluate() {
+    int32_t vl = vlRed - vlBlack;
 
     // 对特殊棋形判断
     // vl += advisorShape();
 
-    if (pos.sidePly) vl = -vl + 3;
+    if (sidePly) vl = -vl + 3;
     else vl = vl + 3;
 
     // 与和棋分数区分开来
-    if (vl == pos.drawValue()) vl = vl - 1;
+    if (vl == drawValue()) vl = vl - 1;
 
     return vl;
 }

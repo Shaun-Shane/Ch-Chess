@@ -11,15 +11,19 @@
 #include "windows.h"
 #endif
 
+// 一些全局可见变量
 Position pos;
 Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
 int32_t killerTable[MAX_DISTANCE][2] = {0};
+
 int32_t rookCapX[9][1 << 9][2] = {0};
 int32_t cannonCapX[9][1 << 9][2] = {0};
 int32_t rookCapY[10][1 << 10][2] = {0};
 int32_t cannonCapY[10][1 << 10][2] = {0};
+int32_t cannonSupperCapY[10][1 << 10][2]= {0};
+
 int32_t bitMaskY[256] = {0}, bitMaskX[256] = {0};
 
 
@@ -254,6 +258,7 @@ void Position::initBit() {
     memset(cannonCapY, -1, sizeof(cannonCapY));
     memset(rookCapX, -1, sizeof(rookCapX));
     memset(cannonCapX, -1, sizeof(cannonCapX));
+    memset(cannonSupperCapY, -1, sizeof(cannonSupperCapY));
 
     // 初始化 bitMask，行Y的 bitMask 通过计算 X 获得
     for (int32_t sq = 0; sq < 256; sq++) {
@@ -302,6 +307,8 @@ void Position::initBit() {
                     if (cnt == 1) rookCapY[i][st][1] = j + Y_FROM;
                     else if (cnt == 2) {
                         cannonCapY[i][st][1] = j + Y_FROM;
+                    } else if (cnt == 3) {
+                        cannonSupperCapY[i][st][1] = j + Y_FROM;
                         break;
                     }
                 }
@@ -313,6 +320,8 @@ void Position::initBit() {
                     if (cnt == 1) rookCapY[i][st][0] = j + Y_FROM;
                     else if (cnt == 2) {
                         cannonCapY[i][st][0] = j + Y_FROM;
+                    } else if (cnt == 3) {
+                        cannonSupperCapY[i][st][0] = j + Y_FROM;
                         break;
                     }
                 }
@@ -342,6 +351,12 @@ int32_t Position::getRookCapY(int32_t src, bool tag) {
 // 返回 Cannon 上下吃子的位置
 int32_t Position::getCannonCapY(int32_t src, bool tag) {
     int32_t y = cannonCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
+    return y == -1 ? 0 : COORD_XY(GET_X(src), y);
+}
+
+// 返回 Cannon 上下隔两子吃子的位置
+int32_t Position::getCannonSupperCapY(int32_t src, bool tag) {
+    int32_t y = cannonSupperCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
     return y == -1 ? 0 : COORD_XY(GET_X(src), y);
 }
 
@@ -617,13 +632,13 @@ int32_t Position::isLegalMove(int32_t mv) {
                 dirTag = dst > src ? true : false;
                 rCapDst = this->getRookCapY(src, dirTag);
                 if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
-                    if (rCapDst == dst) return true; // 吃子走法
+                    if (rCapDst == dst || !rCapDst) return true; // 吃子走法或该方向无子
                     else if (dirTag && dst < rCapDst) return true;
                     else if (!dirTag && dst > rCapDst) return true;
                     else return false;
                 } else {
                     cCapDist = this->getCannonCapY(src, dirTag);
-                    if (cCapDist == dst) return true; // 吃子走法
+                    if (cCapDist == dst || !rCapDst) return true; // 吃子走法或该方向无子
                     else if (dirTag && dst < rCapDst) return true;
                     else if (!dirTag && dst > rCapDst) return true;
                     else return false;
@@ -632,13 +647,13 @@ int32_t Position::isLegalMove(int32_t mv) {
                 dirTag = dst > src ? true : false;
                 rCapDst = this->getRookCapX(src, dirTag);
                 if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
-                    if (rCapDst == dst) return true; // 吃子走法
+                    if (rCapDst == dst || !rCapDst) return true; // 吃子走法或该方向无子
                     else if (dirTag && dst < rCapDst) return true;
                     else if (!dirTag && dst > rCapDst) return true;
                     else return false;
                 } else {
                     cCapDist = this->getCannonCapX(src, dirTag);
-                    if (cCapDist == dst) return true; // 吃子走法
+                    if (cCapDist == dst || !rCapDst) return true; // 吃子走法或该方向无子
                     else if (dirTag && dst < rCapDst) return true;
                     else if (!dirTag && dst > rCapDst) return true;
                     else return false;

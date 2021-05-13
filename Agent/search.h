@@ -7,7 +7,6 @@
 
 #ifndef VSC_DEBUG
 #include "Position.h"
-#include "evaluate.h"
 #include "Zobrist.h"
 #else
 #include "Position.cpp"

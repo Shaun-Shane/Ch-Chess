@@ -58,6 +58,8 @@ extern int32_t cannonCapX[9][1 << 9][2];
 // 车和炮位于某一行(0-10)，在列状态st下，能吃到的最上、最下子的行数
 extern int32_t rookCapY[10][1 << 10][2];
 extern int32_t cannonCapY[10][1 << 10][2];
+// 炮位于某一行(0-10)，在列状态st下， 能隔两子吃到的最上、最下子的行数
+extern int32_t cannonSupperCapY[10][1 << 10][2];
 // sq 在行、列 对应的二进制状态码
 extern int32_t bitMaskY[256], bitMaskX[256];
 
@@ -227,8 +229,21 @@ extern const int32_t KING_KNIGHT_DELTA[4][2];
 /* 棋子类型-位置价值表
  * 获取棋子类型见 PIECE_TYPE(pc) 函数
  * 注意黑方在下 初始 sq 大
+ * 见 evaluate.cpp
  */ 
 extern const int32_t SQ_VALUE[PIECE_EMPTY + 1][256];
+
+// 空头炮威胁分值，行号 0-16
+extern const int32_t HOLLOW_THREAT[16];
+
+// 炮镇窝心马的威胁分值，行号 0-16 或一般中炮威胁
+extern const int32_t CENTRAL_THREAT[16];
+
+//沉底炮的威胁分值 列号 0-16
+extern const int32_t BOTTOM_THREAT[16];
+
+// 缺仕的分值
+constexpr int32_t ADVISOR_LEAKAGE = 40; 
 
 // 将FEN串中棋子标识转化为对应棋子类型 pt 需toupper转化为大写
 int32_t charToPt(char c);
@@ -247,14 +262,16 @@ class Zobrist;
 struct Position {
     // 初始化位行列
     void initBit();
-    // 返回 Rook 左右吃子的位置
+    // 返回 Rook 左右吃子的位置，没有则返回 0
     int32_t getRookCapX(int32_t src, bool tag);
-    // 返回 Cannon 左右吃子的位置
+    // 返回 Cannon 左右吃子的位置，没有则返回 0
     int32_t getCannonCapX(int32_t src, bool tag);
-    // 返回 Rook 上下吃子的位置
+    // 返回 Rook 上下吃子的位置，没有则返回 0
     int32_t getRookCapY(int32_t src, bool tag);
-    // 返回 Cannon 上下吃子的位置
+    // 返回 Cannon 上下吃子的位置，没有则返回 0
     int32_t getCannonCapY(int32_t src, bool tag);
+    // 返回 Cannon 上下隔两子吃子的位置，没有则返回 0
+    int32_t getCannonSupperCapY(int32_t src, bool tag);
 
     // 初始化棋局数组
     void clear();
@@ -287,6 +304,11 @@ struct Position {
     int32_t nullOkay();
     // 空步搜索得到的分值是否有效
     int32_t nullSafe();
+
+    // 仕的棋形评估 包括空头炮、中炮、沉底炮、窝心马 见 evaluate.cpp
+    int32_t advisorShape();
+    // 局面评估函数
+    int32_t evaluate();
 
     // 重复局面分数
     int32_t repValue(int32_t vl);

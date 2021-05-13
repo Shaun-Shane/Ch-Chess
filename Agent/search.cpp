@@ -98,7 +98,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (vl > -MATE_VALUE) return vl;
 
     // 达到极限深度返回
-    if (pos.distance == DEPTH_LIMIT) return evaluate();
+    if (pos.distance == DEPTH_LIMIT) return pos.evaluate();
     
     // 空着裁剪
     if (!noNull && pos.nullOkay() && !pos.isChecked()){
@@ -167,14 +167,14 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
     if (vl) return pos.repValue(vl);
  
     // 2. 达到极限深度 DEPTH 返回估值
-    if (pos.distance == DEPTH_LIMIT) return evaluate();
+    if (pos.distance == DEPTH_LIMIT) return pos.evaluate();
 
     // 3. 生成着法
     if ((ischecked = pos.isChecked())) { // 被将军 生成全部着法
         pos.resetMvKillerHash();
         pos.genAllMoves(); 
     } else { // 不被将军，先进行局面评估是否能截断
-        vl = evaluate();
+        vl = pos.evaluate();
         if (vl > vlBest) {
             if (vl >= beta) return vl;
             vlBest = vl;

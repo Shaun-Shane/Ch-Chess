@@ -120,11 +120,10 @@ int Zobrist::getMoveFromLib(int squares[], int sidePlayer,
     
     srand(time(nullptr));
 
-    int32_t mod = std::min((int)libVector.size(), 6), selected(0);
-    selected = rand() % mod;
+    int32_t tmp = rand() % 10;
 
-    if (selected < 3) return libVector[0].moveInfo;
-    if (selected < 5 && libVector.size() > 1) return libVector[1].moveInfo;
-    if (selected == 5 && libVector.size() > 2) return libVector[2].moveInfo;
+    if (tmp < 6) return libVector[0].moveInfo; // 60 %
+    if (tmp < 9 && libVector.size() > 1) return libVector[1].moveInfo; // 30%
+    if (tmp == 9 && libVector.size() > 2) return libVector[2].moveInfo; //10%
     return libVector.front().moveInfo;
 }

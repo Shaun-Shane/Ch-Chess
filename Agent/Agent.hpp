@@ -152,13 +152,16 @@ void Agent::set() {
     getline(std::cin, tmp);
     pos.fromStringMap(s, aiSide);
     pos.debug();
+    std::cout << pos.isChecked() << std::endl;
 #endif
 }
 
 void Agent::move() {
     std::string s;
     std::cin >> s;
-    pos.makeMove(STR_TO_MOVE(s));
+    if (!pos.makeMove(STR_TO_MOVE(s))) {
+        std::cout << "checked" << std::endl;
+    }
     pos.changeSide();
     pos.debug();
     // std::cout << pos.repStatus() << std::endl;
