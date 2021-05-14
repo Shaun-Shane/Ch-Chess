@@ -168,7 +168,7 @@ int32_t Position::advisorShape() {
                         if (SAME_X(src, dst)) { // 炮与将在同一列
                             if (getRookCapY(src, dst > src) == dst)
                                 redPenalty += HOLLOW_THREAT[GET_Y(pieces[i])];  // 空头炮
-                            else if (getCannonSupperCapY(src, dst > src) &&
+                            else if (getCannonSupperCapY(src, dst > src) == dst &&
                                      (squares[0x47] == 21 ||
                                       squares[0x47] == 22))
                                 redPenalty += CENTRAL_THREAT[GET_Y(pieces[i])];  // 炮镇窝心马的威胁
@@ -213,7 +213,7 @@ int32_t Position::advisorShape() {
                         if (SAME_X(src, dst)) { // 炮与将在同一列
                             if (getRookCapY(src, dst > src) == dst)
                                 blackPenalty += HOLLOW_THREAT[15 - GET_Y(pieces[i])];  // 空头炮
-                            else if (getCannonSupperCapY(src, dst > src) &&
+                            else if (getCannonSupperCapY(src, dst > src) == dst &&
                                      (squares[0xb7] == 37 ||
                                       squares[0xb7] == 38))
                                 blackPenalty += CENTRAL_THREAT[15 - GET_Y(pieces[i])];  // 炮镇窝心马的威胁
@@ -314,24 +314,22 @@ const int32_t N_BAD_SQUARES[256] = {
 };
 
 int32_t Position::knightBlock() {
-    int32_t side, i, j, k, sideTag, src, dst, knightPenalty[2], cnt;
+    int32_t side, i, j, sideTag, src, dst, knightPenalty[2], cnt;
 
     for (side = 0; side < 2; side++) {
         knightPenalty[side] = 0, sideTag = SIDE_TAG(side);
         for (i = sideTag + KNIGHT_FROM; i <= sideTag + KNIGHT_TO; i++) {
             if (!(src = pieces[i])) continue;
-            cnt = 0;
-            for (j = 0; j < 4; j++) {
-                dst = src + KING_DELTA[j];  // 马腿位置
-                if (squares[dst] || !IN_BOARD(dst)) continue;  // 越界或马腿有棋子
-                for (k = 0; k < 2; k++) {
-                    dst = src + KNIGHT_DELTA[j][k];
-                    if (IN_BOARD(dst) && !N_BAD_SQUARES[dst] &&
-                        !(squares[dst] & sideTag) &&
-                        !isProtected(side ^ 1, dst)) {
-                        if ((++cnt) > 1) break;
-                    }
+            cnt = j = 0;
+            dst = knightMvDst[src][j];
+            while(dst) {
+                if (!this->squares[knightMvPin[src][j]] &&
+                    !N_BAD_SQUARES[dst] && !(squares[dst] & sideTag) &&
+                    !isProtected(side ^ 1, dst)) {
+                    if ((++cnt) > 1) break;
                 }
+                j++;
+                dst = knightMvDst[src][j];
             }
             if (cnt == 0) knightPenalty[side] += 10; // 没有好走法 罚分
             else if (cnt == 1) knightPenalty[side] += 5; // 只有一个好走法 也罚分
