@@ -519,7 +519,7 @@ int32_t Position::nullOkay() {
 }
 // 空步搜索得到的分值是否有效
 int32_t Position::nullSafe() {
-    return (this->sidePly ? this->vlBlack : this->vlRed) > 250;
+    return (this->sidePly ? this->vlBlack : this->vlRed) > 230;
 }
 
 int32_t Position::repValue(int32_t vl) {
@@ -583,7 +583,7 @@ int32_t Position::isChecked() {
     if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN &&
         !(this->squares[dst] & sideTag))
         return true;
-    // 两侧的兵只不需要判断颜色
+    // 两侧的兵不需要判断颜色
     if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
     if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
     return false;
@@ -658,39 +658,48 @@ int32_t Position::isLegalMove(int32_t mv) {
     return false;
 }
 
-// 判断一个位置是否被保护
+// 判断一个位置是否被保护 保护方为 side
 int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     int32_t sideTag = SIDE_TAG(side);
     int32_t src, i, pin;
     
-    // 1. 受到将保护
-    src = this->pieces[sideTag + KING_FROM];
-    if (src && KING_SPAN(src, dst)) return true;
+    if (SELF_SIDE(dst, side)) {
+        // 1. 受到己方将保护
+        src = this->pieces[sideTag + KING_FROM];
+        if (src && KING_SPAN(src, dst)) return true;
 
-    // 2. 受到士保护
-    for (i = ADVISOR_FROM; i <= ADVISOR_TO; i++) {
-        src = this->pieces[sideTag + i];
-        if (src && ADVISOR_SPAN(src, dst)) return true;
-    }
-    
-    // 3. 受到象的保护
-    for (i = BISHOP_FROM; i <= BISHOP_TO; i++) {
-        src = this->pieces[sideTag + i];
-        if (src && SELF_SIDE(dst, side) && BISHOP_SPAN(src, dst) &&
-            !this->squares[BISHOP_PIN(src, dst)])
+        // 2. 受到己方士保护
+        for (i = ADVISOR_FROM; i <= ADVISOR_TO; i++) {
+            src = this->pieces[sideTag + i];
+            if (src && ADVISOR_SPAN(src, dst)) return true;
+        }
+
+        // 3. 受到己方象的保护
+        for (i = BISHOP_FROM; i <= BISHOP_TO; i++) {
+            src = this->pieces[sideTag + i];
+            if (src && BISHOP_SPAN(src, dst) &&
+                !this->squares[BISHOP_PIN(src, dst)])
+                return true;
+        }
+    } else {
+        src = dst - 1;
+        if ((this->squares[src] & sideTag) &&
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            return true;
+        src = dst + 1;
+        if ((this->squares[src] & sideTag) &&
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
             return true;
     }
-    
-    // 4. 受到马的保护
+    // 4. 受到己方马的保护
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if ((src = this->pieces[sideTag + i])) {
-            src = this->pieces[sideTag + i];
             pin = KNIGHT_PIN(src, dst);
             if (pin != src && !this->squares[pin]) return true;
         }
     }
 
-    // 3. 受到车的保护 通过位行、列实现
+    // 3. 受到己方车的保护 通过位行、列实现
     for (i = ROOK_FROM; i <= ROOK_TO; i++) {
         src = this->pieces[sideTag + i];
         if (SAME_X(src, dst)) { // 同一列
@@ -700,7 +709,7 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
         }
     }
 
-    // 4. 受到炮的保护 通过位行、列实现
+    // 4. 受到己方炮的保护 通过位行、列实现
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
         src = this->pieces[sideTag + i];; // 敌方 CANNON 位置
         if (SAME_X(src, dst)) { // 同一列
@@ -710,9 +719,11 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
         }
     }
 
-    // 5. 受到兵的保护
-    if (dst == SQ_FORWARED(src, side)) return true;
-    if (!SELF_SIDE(src, side) && (dst - src == 1 || src - dst == 1)) return true;
+    // 5. 受到己方兵的保护
+    src = SQ_FORWARED(dst, side ^ 1); // 向后走一步，能否遇到己方兵
+    if ((this->squares[src] & sideTag) &&
+        PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+        return true;
 
     return false;
 }

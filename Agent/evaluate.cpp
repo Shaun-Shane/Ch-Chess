@@ -293,6 +293,53 @@ int32_t Position::rookMobility() {
     return rookMob[0] - rookMob[1];
 }
 
+// 不利于马的位置
+const int32_t N_BAD_SQUARES[256] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+int32_t Position::knightBlock() {
+    int32_t side, i, j, k, sideTag, src, dst, knightPenalty[2], cnt;
+
+    for (side = 0; side < 2; side++) {
+        knightPenalty[side] = 0, sideTag = SIDE_TAG(side);
+        for (i = sideTag + KNIGHT_FROM; i <= sideTag + KNIGHT_TO; i++) {
+            if (!(src = pieces[i])) continue;
+            cnt = 0;
+            for (j = 0; j < 4; j++) {
+                dst = src + KING_DELTA[j];  // 马腿位置
+                if (squares[dst] || !IN_BOARD(dst)) continue;  // 越界或马腿有棋子
+                for (k = 0; k < 2; k++) {
+                    dst = src + KNIGHT_DELTA[j][k];
+                    if (IN_BOARD(dst) && !N_BAD_SQUARES[dst] &&
+                        !(squares[dst] & sideTag) &&
+                        !isProtected(side ^ 1, dst)) {
+                        if ((++cnt) > 1) break;
+                    }
+                }
+            }
+            if (cnt == 0) knightPenalty[side] += 10; // 没有好走法 罚分
+            else if (cnt == 1) knightPenalty[side] += 5; // 只有一个好走法 也罚分
+        }
+    }
+    return -knightPenalty[0] + knightPenalty[1];
+}
+
 int32_t Position::evaluate() {
     int32_t vl = vlRed - vlBlack;
 
@@ -300,6 +347,8 @@ int32_t Position::evaluate() {
     vl += advisorShape();
     // 车的灵活性评价
     vl += rookMobility();
+    // 马的阻碍评价
+    vl += knightBlock();
 
     if (sidePly) vl = -vl + 3;
     else vl = vl + 3;

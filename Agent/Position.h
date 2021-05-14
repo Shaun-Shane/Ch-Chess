@@ -241,6 +241,9 @@ extern const int32_t CENTRAL_THREAT[16];
 //沉底炮的威胁分值 列号 0-16
 extern const int32_t BOTTOM_THREAT[16];
 
+// 不利于马的位置
+extern const int32_t N_BAD_SQUARES[256];
+
 // 缺仕的分值
 constexpr int32_t ADVISOR_LEAKAGE = 40; 
 
@@ -308,6 +311,8 @@ struct Position {
     int32_t advisorShape();
     // 车的灵活性
     int32_t rookMobility();
+    // 马受阻碍评价
+    int32_t knightBlock();
     // 局面评估函数
     int32_t evaluate();
 
@@ -323,7 +328,7 @@ struct Position {
     int32_t isChecked();
     // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
-    // 判断一个位置是否被保护
+    // 判断一个位置是否被保护 保护方为 side
     int32_t isProtected(int32_t side, int32_t src, int32_t sqExcp = -1);
     // 判断重复局面
     int32_t repStatus(int32_t repCount = 1);
