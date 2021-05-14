@@ -25,6 +25,7 @@ int32_t cannonCapY[10][1 << 10][2] = {0};
 int32_t cannonSupperCapY[10][1 << 10][2]= {0};
 
 int32_t bitMaskY[256] = {0}, bitMaskX[256] = {0};
+int32_t knightMvDst[256][12] = {0}, knightMvPin[256][8] = {0};
 
 
 // 用于判断棋子是否在棋盘上
@@ -252,12 +253,14 @@ int32_t STR_TO_MOVE(std::string mvStr) {
 }
 
 // 初始化位行列
-void Position::initBit() {
+void Position::preGen() {
     memset(rookCapY, -1, sizeof(rookCapY));
     memset(cannonCapY, -1, sizeof(cannonCapY));
     memset(rookCapX, -1, sizeof(rookCapX));
     memset(cannonCapX, -1, sizeof(cannonCapX));
     memset(cannonSupperCapY, -1, sizeof(cannonSupperCapY));
+    memset(knightMvDst, 0, sizeof(knightMvDst));
+    memset(knightMvPin, 0, sizeof(knightMvPin));
 
     // 初始化 bitMask，行Y的 bitMask 通过计算 X 获得
     for (int32_t sq = 0; sq < 256; sq++) {
@@ -323,6 +326,24 @@ void Position::initBit() {
                         cannonSupperCapY[i][st][0] = j + Y_FROM;
                         break;
                     }
+                }
+            }
+        }
+    }
+
+
+    // 初始化马的走法
+    for (int32_t sq = 0; sq < 256; sq++) {
+        if (IN_BOARD(sq)) {
+            int32_t cnt = 0;
+            for (int32_t j = 0, dst; j < 4; j++) {
+                dst = sq + KING_DELTA[j]; // 马腿位置
+                if (!IN_BOARD(dst)) continue; // 马腿越界
+                for (int32_t k = 0; k < 2; k++) {
+                    dst = sq + KNIGHT_DELTA[j][k];
+                    if (!IN_BOARD(dst)) continue;
+                    knightMvDst[sq][cnt] = dst;
+                    knightMvPin[sq][cnt++] = sq + KING_DELTA[j];
                 }
             }
         }

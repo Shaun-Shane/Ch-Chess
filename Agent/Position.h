@@ -62,6 +62,8 @@ extern int32_t cannonCapY[10][1 << 10][2];
 extern int32_t cannonSupperCapY[10][1 << 10][2];
 // sq 在行、列 对应的二进制状态码
 extern int32_t bitMaskY[256], bitMaskX[256];
+// 马的着法与对应马腿预生成数组
+extern int32_t knightMvDst[256][12], knightMvPin[256][8];
 
 // 用于判断棋子是否在棋盘上
 extern const int32_t _IN_BOARD[256];
@@ -262,8 +264,8 @@ int32_t STR_TO_MOVE(std::string mvStr);
 class Zobrist;
 
 struct Position {
-    // 初始化位行列
-    void initBit();
+    // 初始化位行列、马走法
+    void preGen();
     // 返回 Rook 左右吃子的位置，没有则返回 0
     int32_t getRookCapX(int32_t src, bool tag);
     // 返回 Cannon 左右吃子的位置，没有则返回 0

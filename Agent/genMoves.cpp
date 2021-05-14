@@ -71,7 +71,7 @@ void Position::genAllMoves() {
 // 添加非吃子 mv 到 mvsGen 数组
 #define ADD_NCAP_MOVE()                                                \
     {                                                                  \
-        if (!this->squares[dst] && !(this->squares[dst] & sideTag)) {  \
+        if (!this->squares[dst]) {                                     \
             mvsGenPtr->mv = MOVE(src, dst);                            \
             mvsGenPtr->vl = historyTable[historyIndex(mvsGenPtr->mv)]; \
             mvsGenPtr++, this->genNum[this->distance]++;               \
@@ -80,7 +80,7 @@ void Position::genAllMoves() {
 
 void Position::genNonCapMoves() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
-    int32_t src, dst, i, j, k, delta;
+    int32_t src, dst, i, j, delta;
     
     // 从吃子着法后开始生成非吃子着法
     int32_t genNumSt(this->genNum[this->distance]);
@@ -120,14 +120,13 @@ void Position::genNonCapMoves() {
     //4. 生成 KNIGHT 走法
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            dst = src + KING_DELTA[j]; // 马腿位置
-            if (this->squares[dst] || !IN_BOARD(dst)) continue; // 越界或马腿有棋子
-            for (k = 0; k < 2; k++) {
-                dst = src + KNIGHT_DELTA[j][k];
-                if (!IN_BOARD(dst)) continue;
-                ADD_NCAP_MOVE();
-            }
+        j = 0;
+        dst = knightMvDst[src][j];
+        while(dst) {
+            // 马腿无棋子
+            if (!this->squares[knightMvPin[src][j]]) ADD_NCAP_MOVE();
+            j++;
+            dst = knightMvDst[src][j];
         }
     }
 
@@ -178,7 +177,7 @@ void Position::genNonCapMoves() {
 // 添加 cap_mv 到 mvsGen 数组
 #define ADD_CAP_MOVE()                                                       \
     {                                                                        \
-        if (this->squares[dst] && !(this->squares[dst] & sideTag)) {         \
+        if (this->squares[dst] & oppSideTag) {                               \
             mvsGenPtr->mv = MOVE(src, dst);                                  \
             mvsGenPtr->vl = MVV_LVA(this->squares[dst], this->squares[src]); \
             mvsGenPtr++, this->genNum[this->distance]++;                     \
@@ -188,7 +187,8 @@ void Position::genNonCapMoves() {
 // 生成吃子着法
 void Position::genCapMoves() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
-    int32_t src, dst, i, j, k;
+    int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
+    int32_t src, dst, i, j;
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
@@ -228,14 +228,13 @@ void Position::genCapMoves() {
     //4. 生成 KNIGHT 吃子走法
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            dst = src + KING_DELTA[j]; // 马腿位置
-            if (this->squares[dst] || !IN_BOARD(dst)) continue; // 越界或马腿有棋子
-            for (k = 0; k < 2; k++) {
-                dst = src + KNIGHT_DELTA[j][k];
-                if (!IN_BOARD(dst)) continue;
-                ADD_CAP_MOVE();
-            }
+        j = 0;
+        dst = knightMvDst[src][j];
+        while(dst) {
+            // 马腿无棋子
+            if (!this->squares[knightMvPin[src][j]]) ADD_CAP_MOVE();
+            j++;
+            dst = knightMvDst[src][j];
         }
     }
 
