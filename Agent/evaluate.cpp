@@ -252,42 +252,42 @@ int32_t Position::advisorShape() {
 }
 
 int32_t Position::rookMobility() {
-    int32_t sd, i, sideTag, src, rookMob[2], x, y;
-    for (sd = 0; sd < 2; sd++) {
-        rookMob[sd] = 0, sideTag = SIDE_TAG(sd);
+    int32_t side, i, sideTag, src, rookMob[2], x, y;
+    for (side = 0; side < 2; side++) {
+        rookMob[side] = 0, sideTag = SIDE_TAG(side);
         for (i = sideTag + ROOK_FROM; i <= sideTag + ROOK_TO; i++) {
             if (!(src = pieces[i])) continue;
             // 最右非吃子
             x = rookCapX[GET_X(src) - X_FROM][stateY[GET_Y(src)]][1];
             if (~x) {
-                if (!(squares[COORD_XY(x, GET_Y(src))] & sideTag)) rookMob[sd]++;
+                if (!(squares[COORD_XY(x, GET_Y(src))] & sideTag)) rookMob[side]++;
                 x--;
             } else x = X_TO;
-            rookMob[sd] += x - GET_X(src);
+            rookMob[side] += x - GET_X(src);
 
             // 最左非吃子
             x = rookCapX[GET_X(src) - X_FROM][stateY[GET_Y(src)]][0];
             if (~x) {
-                if (!(squares[COORD_XY(x, GET_Y(src))] & sideTag)) rookMob[sd]++;
+                if (!(squares[COORD_XY(x, GET_Y(src))] & sideTag)) rookMob[side]++;
                 x++;
             } else x = X_FROM;
-            rookMob[sd] += GET_X(src)- x;
+            rookMob[side] += GET_X(src)- x;
 
             // 最上(sq大)非吃子
             y = rookCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][1];
             if (~y) {
-                if (!(squares[COORD_XY(GET_X(src), y)] & sideTag)) rookMob[sd]++;
+                if (!(squares[COORD_XY(GET_X(src), y)] & sideTag)) rookMob[side]++;
                 y--;
             } else y = Y_TO;
-            rookMob[sd] += y - GET_Y(src);
+            rookMob[side] += y - GET_Y(src);
 
             // 最下(sq小)非吃子
             y = rookCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][0];
             if (~y) {
-                if (!(squares[COORD_XY(GET_X(src), y)] & sideTag)) rookMob[sd]++;
+                if (!(squares[COORD_XY(GET_X(src), y)] & sideTag)) rookMob[side]++;
                 y++;
             } else y = Y_FROM;
-            rookMob[sd] += GET_Y(src) - y;
+            rookMob[side] += GET_Y(src) - y;
         }
     }
     return rookMob[0] - rookMob[1];

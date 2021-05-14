@@ -224,7 +224,6 @@ int_fast32_t historyIndex(int32_t mv);
 extern const int32_t KING_DELTA[4];
 extern const int32_t ADVISOR_DELTA[4];
 extern const int32_t KNIGHT_DELTA[4][2];
-extern const int32_t KING_KNIGHT_DELTA[4][2];
 
 /* 棋子类型-位置价值表
  * 获取棋子类型见 PIECE_TYPE(pc) 函数
@@ -324,6 +323,8 @@ struct Position {
     int32_t isChecked();
     // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
+    // 判断一个位置是否被保护
+    int32_t isProtected(int32_t side, int32_t src, int32_t sqExcp = -1);
     // 判断重复局面
     int32_t repStatus(int32_t repCount = 1);
     

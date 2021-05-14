@@ -153,6 +153,7 @@ void Agent::set() {
     pos.fromStringMap(s, aiSide);
     pos.debug();
     std::cout << pos.isChecked() << std::endl;
+    std::cout << pos.isProtected(0, 0x97) << std::endl;
 #endif
 }
 
