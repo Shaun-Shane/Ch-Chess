@@ -214,28 +214,6 @@ char ptToChar(int32_t pt) {
     }
 }
 
-int_fast32_t historyIndex(int32_t mv) {
-    return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
-             PIECE_TYPE(pos.squares[SRC(mv)]))
-            << 8) +
-           DST(mv);
-}
-
-void setHistory(int32_t mv, int32_t depth) {
-    historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
-             PIECE_TYPE(pos.squares[SRC(mv)]))
-            << 8) +
-           DST(mv)] += depth * depth;
-}
-
-void setKillerTable(int32_t mv) {
-    auto tablePtr = killerTable[pos.distance];
-    if (tablePtr[0] != mv) {
-        tablePtr[1] = tablePtr[0]; // newKillerMove -> 0, 0 -> 1
-        tablePtr[0] = mv;
-    }
-}
-
 std::string MOVE_TO_STR(int32_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;

@@ -182,6 +182,9 @@ int32_t Position::advisorShape() {
                         if (SAME_X(src, dst)) {
                             if (getCannonSupperCapY(src, dst > src) == dst) {// 计算普通中炮威胁
                                 redPenalty += (CENTRAL_THREAT[GET_Y(pieces[i])] >> 1);
+                                // 将门被控制 扣分
+                                if (!squares[0x36] && isProtected(1, 0x36)) redPenalty += 20;
+                                else if (!squares[0x38] && isProtected(1, 0x38)) redPenalty += 20;
                                 // 如果车在底线保护将帅，扣分
                                 for (int32_t j = SIDE_TAG(0) + ROOK_FROM; j <= SIDE_TAG(0) + ROOK_TO; j++) {
                                     if (!(src = pieces[j])) continue; // 己方车位置
@@ -227,6 +230,9 @@ int32_t Position::advisorShape() {
                         if (SAME_X(src, dst)) {
                             if (getCannonSupperCapY(src, dst > src) == dst) { // 计算普通中炮威胁
                                 blackPenalty += (CENTRAL_THREAT[15 - GET_Y(pieces[i])] >> 1);
+                                // 将门被控制 扣分
+                                if (!squares[0xc6] && isProtected(0, 0xc6)) blackPenalty += 20;
+                                else if (!squares[0xc8] && isProtected(0, 0xc8)) blackPenalty += 20;
                                 // 如果车在底线保护将帅，扣分
                                 for (int32_t j = SIDE_TAG(1) + ROOK_FROM; j <= SIDE_TAG(1) + ROOK_TO; j++) {
                                     if (!(src = pieces[j])) continue; // 己方车位置

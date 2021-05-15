@@ -209,19 +209,6 @@ inline int32_t MOVE(int32_t src, int32_t dst) {
     return src + (dst << 8);
 }
 
-// 历史表
-extern int_fast64_t historyTable[1 << 12];
-// 杀手着法表
-extern int32_t killerTable[MAX_DISTANCE][2];
-
-// 更新历史表
-void setHistory(int32_t mv, int32_t depth);
-// 更新杀手着法表
-void setKillerTable(int32_t mv);
-
-// 获得 mv 对应的历史表下标
-int_fast32_t historyIndex(int32_t mv);
-
 // 棋子走法
 extern const int32_t KING_DELTA[4];
 extern const int32_t ADVISOR_DELTA[4];
@@ -379,4 +366,35 @@ struct Position {
 };
 
 extern Position pos;
+
+// 历史表
+extern int_fast64_t historyTable[1 << 12];
+// 杀手着法表
+extern int32_t killerTable[MAX_DISTANCE][2];
+
+// 更新历史表
+inline void setHistory(int32_t mv, int32_t depth) {
+    historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv)] += depth * depth;
+}
+
+// 获得 mv 对应的历史表下标
+inline int32_t historyIndex(int32_t mv) {
+    return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv);
+}
+
+// 更新杀手着法表
+inline void setKillerTable(int32_t mv) {
+    auto tablePtr = killerTable[pos.distance];
+    if (tablePtr[0] != mv) {
+        tablePtr[1] = tablePtr[0]; // newKillerMove -> 0, 0 -> 1
+        tablePtr[0] = mv;
+    }
+}
+
 #endif
