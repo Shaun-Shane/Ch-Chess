@@ -20,6 +20,7 @@ int32_t killerTable[MAX_DISTANCE][2] = {0};
 
 int32_t rookCapX[9][1 << 9][2] = {0};
 int32_t cannonCapX[9][1 << 9][2] = {0};
+int32_t cannonSupperCapX[9][1 << 9][2]= {0};
 int32_t rookCapY[10][1 << 10][2] = {0};
 int32_t cannonCapY[10][1 << 10][2] = {0};
 int32_t cannonSupperCapY[10][1 << 10][2]= {0};
@@ -239,6 +240,7 @@ void Position::preGen() {
     memset(cannonSupperCapY, -1, sizeof(cannonSupperCapY));
     memset(knightMvDst, 0, sizeof(knightMvDst));
     memset(knightMvPin, 0, sizeof(knightMvPin));
+    memset(cannonSupperCapX, -1, sizeof(cannonSupperCapX));
 
     // 初始化 bitMask，行Y的 bitMask 通过计算 X 获得
     for (int32_t sq = 0; sq < 256; sq++) {
@@ -260,6 +262,8 @@ void Position::preGen() {
                     if (cnt == 1) rookCapX[i][st][1] = j + X_FROM;
                     else if (cnt == 2) {
                         cannonCapX[i][st][1] = j + X_FROM;
+                    }else if (cnt == 3){
+                        cannonSupperCapX[i][st][1] = j + X_FROM;
                         break;
                     }
                 }
@@ -271,6 +275,8 @@ void Position::preGen() {
                     if (cnt == 1) rookCapX[i][st][0] = j + X_FROM;
                     else if (cnt == 2) {
                         cannonCapX[i][st][0] = j + X_FROM;
+                    }else if (cnt == 3){
+                        cannonSupperCapX[i][st][0] = j + X_FROM;
                         break;
                     }
                 }
@@ -337,6 +343,12 @@ int32_t Position::getRookCapX(int32_t src, bool tag) {
 // 返回 Cannon 左右吃子的位置
 int32_t Position::getCannonCapX(int32_t src, bool tag) {
     int32_t x = cannonCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
+    return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
+}
+
+//返回 Cannon左右隔两子吃子的位置
+int32_t Position::getCannonSupperCapX(int32_t src, bool tag) {
+    int32_t x = cannonSupperCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
     return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
 }
 
@@ -665,34 +677,38 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     if (SELF_SIDE(dst, side)) {
         // 1. 受到己方将保护
         src = this->pieces[sideTag + KING_FROM];
-        if (src && KING_SPAN(src, dst)) return true;
+        if (src && src != sqExcp && KING_SPAN(src, dst)) return true;
 
         // 2. 受到己方士保护
         for (i = ADVISOR_FROM; i <= ADVISOR_TO; i++) {
             src = this->pieces[sideTag + i];
-            if (src && ADVISOR_SPAN(src, dst)) return true;
+            if (src && src != sqExcp && ADVISOR_SPAN(src, dst)) return true;
         }
 
         // 3. 受到己方象的保护
         for (i = BISHOP_FROM; i <= BISHOP_TO; i++) {
             src = this->pieces[sideTag + i];
-            if (src && BISHOP_SPAN(src, dst) &&
+            if (src && src != sqExcp && BISHOP_SPAN(src, dst) &&
                 !this->squares[BISHOP_PIN(src, dst)])
                 return true;
         }
     } else {
         src = dst - 1;
         if ((this->squares[src] & sideTag) &&
-            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN &&
+            src != sqExcp)
             return true;
         src = dst + 1;
         if ((this->squares[src] & sideTag) &&
-            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN &&
+            src != sqExcp)
             return true;
     }
     // 4. 受到己方马的保护
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if ((src = this->pieces[sideTag + i])) {
+            if (src == sqExcp)
+                continue;
             pin = KNIGHT_PIN(src, dst);
             if (pin != src && !this->squares[pin]) return true;
         }
@@ -701,6 +717,8 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     // 3. 受到己方车的保护 通过位行、列实现
     for (i = ROOK_FROM; i <= ROOK_TO; i++) {
         src = this->pieces[sideTag + i];
+        if (!src || src == dst || src == sqExcp)
+            continue;
         if (SAME_X(src, dst)) { // 同一列
             if (src == this->getRookCapY(dst, src > dst)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
@@ -711,6 +729,8 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     // 4. 受到己方炮的保护 通过位行、列实现
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
         src = this->pieces[sideTag + i];; // 敌方 CANNON 位置
+        if (!src || src == dst || src == sqExcp)
+            continue;
         if (SAME_X(src, dst)) { // 同一列
             if (src == this->getCannonCapY(dst, src > dst)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
@@ -721,7 +741,8 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     // 5. 受到己方兵的保护
     src = SQ_FORWARED(dst, side ^ 1); // 向后走一步，能否遇到己方兵
     if ((this->squares[src] & sideTag) &&
-        PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+        PIECE_TYPE(this->squares[src]) == PIECE_PAWN &&
+        src != sqExcp)
         return true;
 
     return false;

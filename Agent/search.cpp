@@ -32,7 +32,7 @@ std::pair<int32_t, int32_t> searchMain() {
             fprintf(fpw, "depth: %d, time: %lld\n", depth, (long long)(clock() - searchSt));
             fclose(fpw);
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC * 5) {
+        if (clock() - searchSt > CLOCKS_PER_SEC * 10) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }

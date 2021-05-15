@@ -155,6 +155,50 @@ const int32_t CENTRAL_THREAT[16] = {
 const int32_t BOTTOM_THREAT[16] = {
     0,  0,  0, 40, 30,  0,  0,  0,  0,  0, 30, 40,  0,  0,  0,  0
 };
+//被牵制棋子的价值（或者说是否能牵制得住，牵制这个棋子有没有意义）
+const int32_t BEHELD_PIECE_VALUE[48] = 
+{
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 2, 2, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 2, 2, 0, 0, 1, 1, 0, 0, 0, 0, 0
+};
+//某一种牵制状态的估值
+const int32_t HOLD_VALUE_TABLE[512] = 
+{
+                               0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 12,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 16,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 20,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 24,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 28,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 32,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 36,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 40,  0,  0,  0,  0,  0,  0,  0,  0,
+  12, 16, 20, 24, 28, 32, 36,  0, 36, 32, 28, 24, 20, 16, 12,  0,
+   0,  0,  0,  0,  0,  0,  0, 40,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 36,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 32,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 28,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 24,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 20,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 16,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0, 12,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   0,  0,  0,  0,  0,  0,  0
+};
 
 int32_t Position::advisorShape() {
     int32_t redPenalty(0), blackPenalty(0);
@@ -349,6 +393,8 @@ int32_t Position::evaluate() {
 
     // 对特殊棋形评价
     vl += advisorShape();
+    // 对牵制局面的评价
+    vl += holdState();
     // 车的灵活性评价
     vl += rookMobility();
     // 马的阻碍评价
@@ -361,4 +407,244 @@ int32_t Position::evaluate() {
     if (vl == drawValue()) vl = vl - 1;
 
     return vl;
+}
+
+int32_t Position::holdState()
+{
+    int sidePlayer;
+    int holdValue[2] = {0};
+    int i, j;
+    for (sidePlayer = 0; sidePlayer < 2; sidePlayer++)
+    {
+        //用己方车来牵制对方棋子
+        for (i = ROOK_FROM; i <= ROOK_TO; i++)
+        {
+            int sqRook = this->pieces[SIDE_TAG(sidePlayer) + i];
+            if (sqRook && IN_BOARD(sqRook))
+            {
+                //牵制目标是对面的帅
+                int sqOppKing = this->pieces[OPP_SIDE_TAG(sidePlayer) + KING_FROM];
+                if (sqOppKing && IN_BOARD(sqOppKing))
+                {
+                    //车和帅在同一列
+                    if (GET_X(sqRook) == GET_X(sqOppKing))
+                    {
+                        int tag = sqRook < sqOppKing ? 1 : 0;
+                        //车和对面帅之间隔一个子，于是车用炮的走法能吃到对面帅，车
+                        //本身能吃到中间隔着的那个棋子，这就形成了一种牵制，如果对方贸然移动
+                        //这两个棋子中的一个，另一个就会被车吃掉。当然中间隔着的被牵制棋子必须有价值并且
+                        //能被牵制住，对车来说适合的是对方的马和炮，如果中间隔着对方的车，自己会被吃，中间隔着
+                        //对方的兵，对方可以舍弃这个兵。同时也需要中间的这个被牵制的棋子没有被
+                        //帅（牵制目标）以外的棋子保护，不然牵制就没意义了，因为即使对方移开帅（牵制目标）我们也无法
+                        //用车吃掉隔在中间的被牵制的棋子。
+                        int sqCap = this->getCannonCapY(sqRook, tag);
+                        if (sqCap && sqCap == sqOppKing)
+                        {
+                            int sqHold = this->getRookCapY(sqRook, tag);
+                            if (sqHold && IN_BOARD(sqHold))
+                            {
+                                if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                {
+                                    //被牵制子有意义且没有被对方的帅之外的棋子保护
+                                    if (BEHELD_PIECE_VALUE[this->squares[sqHold]] 
+                                    && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppKing))
+                                    {
+                                        holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppKing - sqRook + 256];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //我方车和对方帅在同一列的牵制情况
+                        if (GET_Y(sqRook) == GET_Y(sqOppKing))
+                        {
+                            int tag = sqRook < sqOppKing ? 1 : 0;
+                            int sqCap = this->getCannonCapX(sqRook, tag);
+                            if (sqCap && sqCap == sqOppKing)
+                            {
+                                int sqHold = this->getRookCapX(sqRook, tag);
+                                if (sqHold && IN_BOARD(sqHold))
+                                {
+                                    if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                    {
+                                        if (BEHELD_PIECE_VALUE[this->squares[sqHold]] 
+                                        && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppKing))
+                                        {
+                                            holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppKing - sqRook + 256];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                //牵制目标是对方车的情况。我方车和对方车在同一行或同一列，中间隔着一个对方的棋子（马或炮）
+                //这样对方的两个棋子也不能贸然移动，否则另一个会被我方车吃掉。同时要注意牵制对方车时要保证对方车也没有
+                //被保护，不然最多也就只能用自己车换对方车
+                for (j = ROOK_FROM; j <= ROOK_TO; j++)
+                {
+                    int sqOppRook = this->pieces[OPP_SIDE_TAG(sidePlayer) + j];
+                    if (sqOppRook && IN_BOARD(sqOppRook))
+                    {
+                        if (GET_X(sqRook) == GET_X(sqOppRook))
+                        {
+                            int tag = sqRook < sqOppRook ? 1 : 0;
+                            int sqCap = this->getCannonCapY(sqRook, tag);
+                            if (sqCap && sqCap == sqOppRook)
+                            {
+                                int sqHold = this->getRookCapY(sqRook, tag);
+                                if (sqHold && IN_BOARD(sqHold))
+                                {
+                                    if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                    {
+                                        if (BEHELD_PIECE_VALUE[this->squares[sqHold]] 
+                                        && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppRook)
+                                        && !this->isProtected(OPP_SIDE_TAG(sidePlayer), sqOppRook))
+                                        {
+                                            holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppRook - sqRook + 256];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (GET_Y(sqRook) == GET_Y(sqOppRook))
+                            {
+                                int tag = sqRook < sqOppRook ? 1 : 0;
+                                int sqCap = this->getCannonCapX(sqRook, tag);
+                                if (sqCap && sqCap == sqOppRook)
+                                {
+                                    int sqHold = this->getRookCapX(sqRook, tag);
+                                    if (sqHold && IN_BOARD(sqHold))
+                                    {
+                                        if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                        {
+                                            if (BEHELD_PIECE_VALUE[this->squares[sqHold]] 
+                                            && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppRook)
+                                            && !this->isProtected(OPP_SIDE_TAG(sidePlayer), sqOppRook))
+                                            {
+                                                holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppRook - sqRook + 256];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        //用己方炮来牵制对方的帅或车，己方炮和对方帅或车在同一行或同一列，中间隔着两个棋子（保证炮能吃到的棋子是对方的，并且
+        //只有当这个棋子是对方的马时才有牵制意义）
+        for (i = CANNON_FROM; i <= CANNON_TO; i++)
+        {
+            int sqCannon = this->pieces[SIDE_TAG(sidePlayer) + i];
+            if (sqCannon && IN_BOARD(sqCannon))
+            {
+                int sqOppKing = this->pieces[OPP_SIDE_TAG(sidePlayer) + KING_FROM];
+                if (sqOppKing && IN_BOARD(sqOppKing))
+                {
+                    if (GET_X(sqCannon) == GET_X(sqOppKing))
+                    {
+                        int tag = sqCannon < sqOppKing ? 1 : 0;
+                        int sqCap = this->getCannonSupperCapY(sqCannon, tag);
+                        if (sqCap && sqCap == sqOppKing)
+                        {
+                            int sqHold = this->getCannonCapY(sqCannon, tag);
+                            if (sqHold && IN_BOARD(sqHold))
+                            {
+                                if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                {
+                                    if (BEHELD_PIECE_VALUE[this->squares[sqHold]] > 1 
+                                    && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppKing))
+                                    {
+                                        holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppKing - sqCannon + 256];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (GET_Y(sqCannon) == GET_Y(sqOppKing))
+                        {
+                            int tag = sqCannon < sqOppKing ? 1 : 0;
+                            int sqCap = this->getCannonSupperCapX(sqCannon, tag);
+                            if (sqCap && sqCap == sqOppKing)
+                            {
+                                int sqHold = this->getCannonCapX(sqCannon, tag);
+                                if (sqHold && IN_BOARD(sqHold))
+                                {
+                                    if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                    {
+                                        if (BEHELD_PIECE_VALUE[this->squares[sqHold]] > 1 
+                                        && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppKing))
+                                        {
+                                            holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppKing - sqCannon + 256];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                //注意用炮牵制对方车时不用考虑对方车有没有被保护，因为即使有被保护仍然可以用炮换对面车
+                //因此牵制局面仍是有效的
+                for (j = ROOK_FROM; j <= ROOK_TO; j++)
+                {
+                    int sqOppRook = this->pieces[OPP_SIDE_TAG(sidePlayer) + j];
+                    if (sqOppRook && IN_BOARD(sqOppRook))
+                    {
+                        if (GET_X(sqCannon) == GET_X(sqOppRook))
+                        {
+                            int tag = sqCannon < sqOppRook ? 1 : 0;
+                            int sqCap = this->getCannonSupperCapY(sqCannon, tag);
+                            if (sqCap && sqCap == sqOppRook)
+                            {
+                                int sqHold = this->getCannonCapY(sqCannon, tag);
+                                if (sqHold && IN_BOARD(sqHold))
+                                {
+                                    if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                    {
+                                        if (BEHELD_PIECE_VALUE[this->squares[sqHold]] > 1
+                                        && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppRook))
+                                        {
+                                            holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppRook - sqCannon + 256];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (GET_Y(sqCannon) == GET_Y(sqOppRook))
+                            {
+                                int tag = sqCannon < sqOppRook ? 1 : 0;
+                                int sqCap = this->getCannonSupperCapX(sqCannon, tag);
+                                if (sqCap && sqCap == sqOppRook)
+                                {
+                                    int sqHold = this->getCannonCapX(sqCannon, tag);
+                                    if (sqHold && IN_BOARD(sqHold))
+                                    {
+                                        if (this->squares[sqHold] & OPP_SIDE_TAG(sidePlayer))
+                                        {
+                                            if (BEHELD_PIECE_VALUE[this->squares[sqHold]] > 1
+                                            && !this->isProtected(OPP_SIDE(sidePlayer), sqHold, sqOppRook))
+                                            {
+                                                holdValue[sidePlayer] += HOLD_VALUE_TABLE[sqOppRook - sqCannon + 256];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return holdValue[0] - holdValue[1];
 }

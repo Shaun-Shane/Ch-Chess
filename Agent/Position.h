@@ -60,6 +60,8 @@ extern int32_t rookCapY[10][1 << 10][2];
 extern int32_t cannonCapY[10][1 << 10][2];
 // 炮位于某一行(0-9)，在列状态st下， 能隔两子吃到的最上、最下子的行数(0-15)
 extern int32_t cannonSupperCapY[10][1 << 10][2];
+// 炮位于某一列(0-8)，在行状态st下， 能隔两子吃到的最左、最右子的列数(0-15)
+extern int32_t cannonSupperCapX[9][1 << 9][2];
 // sq 在行、列 对应的二进制状态码
 extern int32_t bitMaskY[256], bitMaskX[256];
 // 马的着法与对应马腿预生成数组
@@ -233,6 +235,12 @@ extern const int32_t BOTTOM_THREAT[16];
 // 不利于马的位置
 extern const int32_t N_BAD_SQUARES[256];
 
+//被牵制棋子的价值（或者说是否能牵制得住，牵制这个棋子有没有意义）
+extern const int32_t BEHELD_PIECE_VALUE[48];
+
+//某一种牵制状态的估值
+extern const int32_t HOLD_VALUE_TABLE[512];
+
 // 缺仕的分值
 constexpr int32_t ADVISOR_LEAKAGE = 40; 
 
@@ -257,6 +265,8 @@ struct Position {
     int32_t getRookCapX(int32_t src, bool tag);
     // 返回 Cannon 左右吃子的位置，没有则返回 0
     int32_t getCannonCapX(int32_t src, bool tag);
+    // 返回 Cannon 左右隔两子吃子的位置，没有则返回 0
+    int32_t getCannonSupperCapX(int32_t src, bool tag);
     // 返回 Rook 上下吃子的位置，没有则返回 0
     int32_t getRookCapY(int32_t src, bool tag);
     // 返回 Cannon 上下吃子的位置，没有则返回 0
@@ -302,6 +312,8 @@ struct Position {
     int32_t rookMobility();
     // 马受阻碍评价
     int32_t knightBlock();
+    //车、炮对对方关键棋子（将、车）的牵制状态的评价
+    int32_t holdState();
     // 局面评估函数
     int32_t evaluate();
 
