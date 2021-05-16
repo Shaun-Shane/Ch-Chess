@@ -2,6 +2,7 @@
 #define ZOBRIST_H
 #include <algorithm>
 #include <vector>
+#include <ctime>
 
 #include "Position.h"
 #define CHESS_TYPE_NUM 14  //棋子种类数

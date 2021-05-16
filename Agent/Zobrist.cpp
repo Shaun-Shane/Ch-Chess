@@ -119,22 +119,13 @@ int Zobrist::getMoveFromLib(int squares[], int sidePlayer,
     }
     //将所有走法按估值排序
     std::sort(libVector.begin(), libVector.end(), comp);
-    //以价值为权值随机选择一种走法
-    int totVal = 0, i;
-    for (i = 0; i < libVector.size(); i++)
-    {
-        totVal += libVector[i].moveValue;
-    }
-    srand(time(0));
-    int randNum = (rand() % totVal + totVal) % totVal + 1;
-    totVal = 0;
-    int select = -1;
-    while (1)
-    {
-        select++;
-        totVal += libVector[select].moveValue;
-        if (totVal >= randNum)
-            break;
-    }
-    return libVector[select].moveInfo;
+    
+    srand(time(nullptr));
+
+    int32_t tmp = rand() % 10;
+
+    if (tmp < 6) return libVector[0].moveInfo; // 60 %
+    if (tmp < 9 && libVector.size() > 1) return libVector[1].moveInfo; // 30%
+    if (tmp == 9 && libVector.size() > 2) return libVector[2].moveInfo; //10%
+    return libVector.front().moveInfo;
 }

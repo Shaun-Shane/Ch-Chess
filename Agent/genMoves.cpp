@@ -7,14 +7,13 @@ void Position::resetMvKillerHash() {
     this->phase[this->distance] = PHASE::HASH; // 从置换表启发开始
 }
 
-void Position::generateMoves(int32_t mvHash) { // mvHash 默认为 0
+void Position::genMovesInit(int32_t mvHash) { // mvHash 默认为 0
     this->resetMvKillerHash();
+    this->mvHash[this->distance] = mvHash;
 
     if (this->isChecked()) { // 处于被将军状态 禁用杀手启发
-        this->phase[this->distance] = PHASE::OTHER;
-        this->genAllMoves(mvHash); // 生成全部着法， mvHash 优先级最大
-    } else { // 未被将军 才考虑从 phase-HASH 开始启发
-        this->mvHash[this->distance] = mvHash;
+        this->genAllMoves(); // 生成全部着法
+    } else { // 未被将军 才考虑从杀手着法
         this->mvKiller1[this->distance] = killerTable[this->distance][0];
         this->mvKiller2[this->distance] = killerTable[this->distance][1];
     }
@@ -50,7 +49,7 @@ int32_t Position::nextMove() {
         // 4. 生成所有着法，完成后立即进入下一阶段；
         case PHASE::GEN_MOVES:
             this->phase[this->distance] = PHASE::OTHER;
-            this->genAllMoves(this->mvHash[this->distance]); // 置换表 + 历史表启发
+            this->genAllMoves(); // 置换表 + 历史表启发
         default:
             while (this->curMvCnt[this->distance] + 1 < this->genNum[this->distance]) {
                 this->curMvCnt[this->distance]++;
@@ -65,32 +64,34 @@ int32_t Position::nextMove() {
     return 0; // 没有着法 返回 0
 }
 
-// 添加 mv 到 mvsGen 数组
-#define ADD_MOVE()                                                           \
-    {                                                                        \
-        if (!(this->squares[dst] & sideTag)) {                               \
-            mvsGenPtr->mv = MOVE(src, dst);                                  \
-            mvsGenPtr->vl = (mvsGenPtr->mv == mvHash)                        \
-                                ? 1e18 /*置换表着法分值最大*/       \
-                                : historyTable[historyIndex(mvsGenPtr->mv)]; \
-            mvsGenPtr++, this->genNum[this->distance]++;                     \
-        }                                                                    \
+void Position::genAllMoves() {
+    this->genCapMoves(), this->genNonCapMoves();
+}
+
+// 添加非吃子 mv 到 mvsGen 数组
+#define ADD_NCAP_MOVE()                                                \
+    {                                                                  \
+        if (!this->squares[dst]) {                                     \
+            mvsGenPtr->mv = MOVE(src, dst);                            \
+            mvsGenPtr->vl = historyTable[historyIndex(mvsGenPtr->mv)]; \
+            mvsGenPtr++, this->genNum[this->distance]++;               \
+        }                                                              \
     }
 
-void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
+void Position::genNonCapMoves() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
-    int32_t src, dst, i, j, k, delta;
-    // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
-    this->genNum[this->distance] = 0;
-    this->curMvCnt[this->distance] = -1;
-    Moves* mvsGenPtr = this->mvsGen[this->distance];
+    int32_t src, dst, i, j, delta;
+    
+    // 从吃子着法后开始生成非吃子着法
+    int32_t genNumSt(this->genNum[this->distance]);
+    Moves* mvsGenPtr = this->mvsGen[this->distance] + this->genNum[this->distance];
 
     // 1. 生成 KING 走法 将军死亡不会再调用 genAllMoves的
     src = this->pieces[sideTag + KING_FROM];
     for (i = 0; i < 4; i++) { // KING 的四个方向
         dst = src + KING_DELTA[i];
         if (!IN_FORT(dst)) continue;
-        ADD_MOVE();
+        ADD_NCAP_MOVE();
     }
 
     // 2. 生成 ADVISOR 走法
@@ -99,7 +100,7 @@ void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
         for (j = 0; j < 4; j++) { // ADVISOR 的四个方向
             dst = src + ADVISOR_DELTA[j];
             if (!IN_FORT(dst)) continue;
-            ADD_MOVE();
+            ADD_NCAP_MOVE();
         }
     }
 
@@ -112,21 +113,20 @@ void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
                 this->squares[dst])
                 continue;
             dst += ADVISOR_DELTA[j];
-            ADD_MOVE();
+            ADD_NCAP_MOVE();
         }
     }
 
     //4. 生成 KNIGHT 走法
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            dst = src + KING_DELTA[j]; // 马腿位置
-            if (this->squares[dst] || !IN_BOARD(dst)) continue; // 越界或马腿有棋子
-            for (k = 0; k < 2; k++) {
-                dst = src + KNIGHT_DELTA[j][k];
-                if (!IN_BOARD(dst)) continue;
-                ADD_MOVE();
-            }
+        j = 0;
+        dst = knightMvDst[src][j];
+        while(dst) {
+            // 马腿无棋子
+            if (!this->squares[knightMvPin[src][j]]) ADD_NCAP_MOVE();
+            j++;
+            dst = knightMvDst[src][j];
         }
     }
 
@@ -137,9 +137,8 @@ void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
             delta = KING_DELTA[j];
             dst = src + delta; // 从起点开始，沿着方向 delta 走一步
             while (IN_BOARD(dst)) { // 终点在棋盘内
-                if (this->squares[dst] & sideTag) break; // 遇到己方棋子 停止
-                ADD_MOVE();
-                if (this->squares[dst]) break; // 吃子 停下
+                if (this->squares[dst]) break; // 遇到棋子 停止
+                ADD_NCAP_MOVE();
                 dst += delta; // 沿着方向 delta 走一步
             }
         }
@@ -153,16 +152,8 @@ void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
             dst = src + delta; // 从起点开始，沿着方向 delta 走一步
             while (IN_BOARD(dst)) { // 终点在棋盘内
                 if (this->squares[dst]) break; // 遇到棋子 停止
-                ADD_MOVE();
+                ADD_NCAP_MOVE();
                 dst += delta; // 沿着方向 delta 走一步
-            }
-            dst += delta; // 检查是否能吃子
-            while (IN_BOARD(dst)) {
-                if (this->squares[dst]) {
-                    ADD_MOVE();
-                    break; // 遇到一个棋子则停下
-                }
-                dst += delta;
             }
         }
     }
@@ -171,25 +162,22 @@ void Position::genAllMoves(int32_t mvHash) { // param-mvHash 默认值为 0
     for (i = PAWN_FROM; i <= PAWN_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
         dst = SQ_FORWARED(src, this->sidePly);
-        if (IN_BOARD(dst)) ADD_MOVE();
+        if (IN_BOARD(dst)) ADD_NCAP_MOVE();
         if (!SELF_SIDE(src, this->sidePly)) { // 过河卒
-            if (IN_BOARD(dst = src - 1)) ADD_MOVE();
-            if (IN_BOARD(dst = src + 1)) ADD_MOVE();
+            if (IN_BOARD(dst = src - 1)) ADD_NCAP_MOVE();
+            if (IN_BOARD(dst = src + 1)) ADD_NCAP_MOVE();
         }
     }
     
-    // 8. 对着法排序
-    sortMoves();
-}
-
-void Position::sortMoves() {
-    std::sort(this->mvsGen[this->distance], this->mvsGen[this->distance] + this->genNum[this->distance]);
+    // 8. 对着法排序 从吃子着法后开始
+    std::sort(this->mvsGen[this->distance] + genNumSt,
+              this->mvsGen[this->distance] + this->genNum[this->distance]);
 }
 
 // 添加 cap_mv 到 mvsGen 数组
 #define ADD_CAP_MOVE()                                                       \
     {                                                                        \
-        if (!(this->squares[dst] & sideTag) && this->squares[dst]) {         \
+        if (this->squares[dst] & oppSideTag) {                               \
             mvsGenPtr->mv = MOVE(src, dst);                                  \
             mvsGenPtr->vl = MVV_LVA(this->squares[dst], this->squares[src]); \
             mvsGenPtr++, this->genNum[this->distance]++;                     \
@@ -199,7 +187,8 @@ void Position::sortMoves() {
 // 生成吃子着法
 void Position::genCapMoves() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
-    int32_t src, dst, i, j, k, delta;
+    int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
+    int32_t src, dst, i, j;
     // 0. 该 distance 下的 genNum 清零，curMvCnt 置为 -1
     this->genNum[this->distance] = 0;
     this->curMvCnt[this->distance] = -1;
@@ -239,53 +228,40 @@ void Position::genCapMoves() {
     //4. 生成 KNIGHT 吃子走法
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            dst = src + KING_DELTA[j]; // 马腿位置
-            if (this->squares[dst] || !IN_BOARD(dst)) continue; // 越界或马腿有棋子
-            for (k = 0; k < 2; k++) {
-                dst = src + KNIGHT_DELTA[j][k];
-                if (!IN_BOARD(dst)) continue;
-                ADD_CAP_MOVE();
-            }
+        j = 0;
+        dst = knightMvDst[src][j];
+        while(dst) {
+            // 马腿无棋子
+            if (!this->squares[knightMvPin[src][j]]) ADD_CAP_MOVE();
+            j++;
+            dst = knightMvDst[src][j];
         }
     }
 
     // 5. 生成 ROCK 吃子走法
     for (i = ROOK_FROM; i <= ROOK_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            delta = KING_DELTA[j];
-            dst = src + delta; // 从起点开始，沿着方向 delta 走一步
-            while (IN_BOARD(dst)) { // 终点在棋盘内
-                if (this->squares[dst] & sideTag) break; // 遇到己方棋子 停止
-                if (this->squares[dst]) {
-                    ADD_CAP_MOVE();
-                    break; // 吃子 停下
-                }
-                dst += delta; // 沿着方向 delta 走一步
-            }
-        }
+        dst = this->getRookCapY(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getRookCapY(src, true);
+        ADD_CAP_MOVE();
+        dst = this->getRookCapX(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getRookCapX(src, true);
+        ADD_CAP_MOVE();
     }
 
     // 6. 生成 CANNON 吃子走法
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        for (j = 0; j < 4; j++) {
-            delta = KING_DELTA[j];
-            dst = src + delta; // 从起点开始，沿着方向 delta 走一步
-            while (IN_BOARD(dst)) { // 终点在棋盘内
-                if (this->squares[dst]) break; // 遇到棋子 停止
-                dst += delta; // 沿着方向 delta 走一步
-            }
-            dst += delta; // 检查是否能吃子
-            while (IN_BOARD(dst)) {
-                if (this->squares[dst]) {
-                    ADD_CAP_MOVE();
-                    break; // 遇到一个棋子则停下
-                }
-                dst += delta;
-            }
-        }
+        dst = this->getCannonCapY(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getCannonCapY(src, true);
+        ADD_CAP_MOVE();
+        dst = this->getCannonCapX(src, false);
+        ADD_CAP_MOVE();
+        dst = this->getCannonCapX(src, true);
+        ADD_CAP_MOVE();
     }
 
     // 7. 生成 PAWN 吃子走法
@@ -300,5 +276,6 @@ void Position::genCapMoves() {
     }
     
     // 8. 对着法排序
-    sortMoves();
+    std::sort(this->mvsGen[this->distance],
+              this->mvsGen[this->distance] + this->genNum[this->distance]);
 }

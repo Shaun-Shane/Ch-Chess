@@ -47,6 +47,7 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
 }
 
 void Agent::run1() {
+    pos.preGen(); // 初始化位行、位列
     if (bootline() != UCCI_COMM_UCCI) {
         return;
     }
@@ -94,6 +95,7 @@ void Agent::run1() {
 }
 
 void Agent::run_debug() {
+    pos.preGen(); // 初始化位行、位列
     while (true) {
         std::cout << "$ ";
         std::cout.flush();
@@ -109,7 +111,13 @@ void Agent::run_debug() {
             auto result = searchMain();
             std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
             std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
-            pos.makeMove(result.second), pos.changeSide();
+            
+            if (!pos.makeMove(result.second)){
+                std::cout << "error" << std::endl;
+                exit(0);
+            };
+
+            pos.changeSide();
             pos.debug();
             std::cout << "vlBest: " << result.first << std::endl;
             std::cout << "repStatus: " << pos.repStatus() << std::endl;
@@ -144,14 +152,17 @@ void Agent::set() {
     getline(std::cin, tmp);
     pos.fromStringMap(s, aiSide);
     pos.debug();
+    std::cout << pos.isChecked() << std::endl;
+    std::cout << pos.isProtected(0, 0x97) << std::endl;
 #endif
 }
 
 void Agent::move() {
     std::string s;
     std::cin >> s;
-    // pos.movePiece(s);
-    pos.makeMove(STR_TO_MOVE(s));
+    if (!pos.makeMove(STR_TO_MOVE(s))) {
+        std::cout << "checked" << std::endl;
+    }
     pos.changeSide();
     pos.debug();
     // std::cout << pos.repStatus() << std::endl;

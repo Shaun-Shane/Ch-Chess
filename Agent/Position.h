@@ -35,7 +35,7 @@ constexpr int32_t PAWN_TO = 15;     // 卒
 
 enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
 
-constexpr bool DEL_PIECE = true;   // 添加棋子
+constexpr bool DEL_PIECE = true;   // 删除棋子
 
 constexpr int32_t MATE_VALUE = 1e4; // 将军
 constexpr int32_t BAN_VALUE = MATE_VALUE - 100; // 长将判负
@@ -52,6 +52,19 @@ constexpr int32_t Y_TO = 12;
 constexpr int32_t X_FROM = 3;
 constexpr int32_t X_TO = 11;
 
+// 车和炮位于某一列(0-8)，在行状态st下，能吃到的最左、最右子的列数(0-15)
+extern int32_t rookCapX[9][1 << 9][2];
+extern int32_t cannonCapX[9][1 << 9][2];
+// 车和炮位于某一行(0-9)，在列状态st下，能吃到的最上、最下子的行数(0-15)
+extern int32_t rookCapY[10][1 << 10][2];
+extern int32_t cannonCapY[10][1 << 10][2];
+// 炮位于某一行(0-9)，在列状态st下， 能隔两子吃到的最上、最下子的行数(0-15)
+extern int32_t cannonSupperCapY[10][1 << 10][2];
+// sq 在行、列 对应的二进制状态码
+extern int32_t bitMaskY[256], bitMaskX[256];
+// 马的着法与对应马腿预生成数组
+extern int32_t knightMvDst[256][12], knightMvPin[256][8];
+
 // 用于判断棋子是否在棋盘上
 extern const int32_t _IN_BOARD[256];
 // 用于判断棋子是否在九宫内
@@ -66,12 +79,12 @@ inline int32_t COORD_XY(int32_t x, int32_t y) {
     return x + (y << 4);
 }
 
-// 根据 sq 0 ~ 255 返回列数 y 0 ~ 16
+// 根据 sq 0 ~ 255 返回行数 y 0 ~ 16
 inline int32_t GET_Y(int32_t sq) {
     return sq >> 4;
 }
 
-// 根据 sq 0 ~ 255 返回列数 y 0 ~ 16
+// 根据 sq 0 ~ 255 返回列数 x 0 ~ 16
 inline int32_t GET_X(int32_t sq) {
     return sq & 15;
 }
@@ -118,22 +131,22 @@ inline bool SELF_SIDE(int32_t sq, int32_t side) {
 }
 
 // 返回向前走一步后的位置 sq
-inline int SQ_FORWARED(int32_t sq, int32_t side) {
+inline int32_t SQ_FORWARED(int32_t sq, int32_t side) {
     return sq + 16 - (side << 5);
 }
 
-// 镜像后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
-inline int SQ_FLIP(int sq) {
+// 水平翻转后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
+inline int32_t SQ_FLIP(int32_t sq) {
     return 254 - sq;
 }
 
 // 如果两位置在同一行，返回 true
-inline bool SAME_Y(int src, int dst) {
+inline bool SAME_Y(int32_t src, int32_t dst) {
     return ((src ^ dst) & 0xf0) == 0;
 }
 
 // 如果两位置在同一列，返回 true
-inline bool SAME_X(int src, int dst) {
+inline bool SAME_X(int32_t src, int32_t dst) {
     return ((src ^ dst) & 0x0f) == 0;
 }
 
@@ -196,30 +209,32 @@ inline int32_t MOVE(int32_t src, int32_t dst) {
     return src + (dst << 8);
 }
 
-// 历史表
-extern int_fast64_t historyTable[1 << 12];
-// 杀手着法表
-extern int32_t killerTable[MAX_DISTANCE][2];
-
-// 更新历史表
-void setHistory(int32_t mv, int32_t depth);
-// 更新杀手着法表
-void setKillerTable(int32_t mv);
-
-// 获得 mv 对应的历史表下标
-int_fast32_t historyIndex(int32_t mv);
-
 // 棋子走法
 extern const int32_t KING_DELTA[4];
 extern const int32_t ADVISOR_DELTA[4];
 extern const int32_t KNIGHT_DELTA[4][2];
-extern const int32_t KING_KNIGHT_DELTA[4][2];
 
 /* 棋子类型-位置价值表
  * 获取棋子类型见 PIECE_TYPE(pc) 函数
  * 注意黑方在下 初始 sq 大
+ * 见 evaluate.cpp
  */ 
 extern const int32_t SQ_VALUE[PIECE_EMPTY + 1][256];
+
+// 空头炮威胁分值，行号 0-16
+extern const int32_t HOLLOW_THREAT[16];
+
+// 炮镇窝心马的威胁分值，行号 0-16 或一般中炮威胁
+extern const int32_t CENTRAL_THREAT[16];
+
+//沉底炮的威胁分值 列号 0-16
+extern const int32_t BOTTOM_THREAT[16];
+
+// 不利于马的位置
+extern const int32_t N_BAD_SQUARES[256];
+
+// 缺仕的分值
+constexpr int32_t ADVISOR_LEAKAGE = 40; 
 
 // 将FEN串中棋子标识转化为对应棋子类型 pt 需toupper转化为大写
 int32_t charToPt(char c);
@@ -236,6 +251,19 @@ int32_t STR_TO_MOVE(std::string mvStr);
 class Zobrist;
 
 struct Position {
+    // 初始化位行列、马走法
+    void preGen();
+    // 返回 Rook 左右吃子的位置，没有则返回 0
+    int32_t getRookCapX(int32_t src, bool tag);
+    // 返回 Cannon 左右吃子的位置，没有则返回 0
+    int32_t getCannonCapX(int32_t src, bool tag);
+    // 返回 Rook 上下吃子的位置，没有则返回 0
+    int32_t getRookCapY(int32_t src, bool tag);
+    // 返回 Cannon 上下吃子的位置，没有则返回 0
+    int32_t getCannonCapY(int32_t src, bool tag);
+    // 返回 Cannon 上下隔两子吃子的位置，没有则返回 0
+    int32_t getCannonSupperCapY(int32_t src, bool tag);
+
     // 初始化棋局数组
     void clear();
 
@@ -268,6 +296,15 @@ struct Position {
     // 空步搜索得到的分值是否有效
     int32_t nullSafe();
 
+    // 仕的棋形评估 包括空头炮、中炮、沉底炮、窝心马 见 evaluate.cpp
+    int32_t advisorShape();
+    // 车的灵活性
+    int32_t rookMobility();
+    // 马受阻碍评价
+    int32_t knightBlock();
+    // 局面评估函数
+    int32_t evaluate();
+
     // 重复局面分数
     int32_t repValue(int32_t vl);
     // 长将判负分值 与深度有关
@@ -280,18 +317,20 @@ struct Position {
     int32_t isChecked();
     // 判断着法 mv 是否合法
     int32_t isLegalMove(int32_t mv);
+    // 判断一个位置是否被保护 保护方为 side
+    int32_t isProtected(int32_t side, int32_t src, int32_t sqExcp = -1);
     // 判断重复局面
     int32_t repStatus(int32_t repCount = 1);
     
 
     // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
-    void generateMoves(int32_t mvHash = 0);
-    // 全部着法生成 见 genMoves.cpp 帅仕相马车炮兵
-    void genAllMoves(int32_t mvHash = 0);
+    void genMovesInit(int32_t mvHash = 0);
+    // 全部着法生成
+    void genAllMoves();
+    // 非吃子着法生成 见 genMoves.cpp 帅仕相马车炮兵
+    void genNonCapMoves();
     // 吃子着法生成 见 genMoves.cpp
     void genCapMoves();
-    // 对着法排序 见 genMoves.cpp
-    void sortMoves();
     // 将 mvKiller, mvHash 清零
     void resetMvKillerHash();
 
@@ -306,13 +345,15 @@ struct Position {
     // 棋子-棋盘联系组
     int32_t squares[256]; // 每个格子放的棋子，0 为无子
     int32_t pieces[48]; // 每个棋子放的位置，0 为棋子不存在
+    int32_t stateY[16]; // 每一行的二进制状态
+    int32_t stateX[16]; // 每一列的二进制状态
 
     int32_t sidePly; // 走子方，0 为 红方，1 为 黑方
 
     int32_t vlRed, vlBlack; // 红方、黑方估值
 
     int32_t moveNum, distance; // 着法数、搜索步数
-    MoveList moveList[MAX_DISTANCE << 2]; // 着法列标
+    MoveList moveList[MAX_DISTANCE << 2]; // 着法列表
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
@@ -325,4 +366,35 @@ struct Position {
 };
 
 extern Position pos;
+
+// 历史表
+extern int_fast64_t historyTable[1 << 12];
+// 杀手着法表
+extern int32_t killerTable[MAX_DISTANCE][2];
+
+// 更新历史表
+inline void setHistory(int32_t mv, int32_t depth) {
+    historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv)] += depth * depth;
+}
+
+// 获得 mv 对应的历史表下标
+inline int32_t historyIndex(int32_t mv) {
+    return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
+             PIECE_TYPE(pos.squares[SRC(mv)]))
+            << 8) +
+           DST(mv);
+}
+
+// 更新杀手着法表
+inline void setKillerTable(int32_t mv) {
+    auto tablePtr = killerTable[pos.distance];
+    if (tablePtr[0] != mv) {
+        tablePtr[1] = tablePtr[0]; // newKillerMove -> 0, 0 -> 1
+        tablePtr[0] = mv;
+    }
+}
+
 #endif

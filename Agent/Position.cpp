@@ -11,11 +11,22 @@
 #include "windows.h"
 #endif
 
+// 一些全局可见变量
 Position pos;
 Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
 int32_t killerTable[MAX_DISTANCE][2] = {0};
+
+int32_t rookCapX[9][1 << 9][2] = {0};
+int32_t cannonCapX[9][1 << 9][2] = {0};
+int32_t rookCapY[10][1 << 10][2] = {0};
+int32_t cannonCapY[10][1 << 10][2] = {0};
+int32_t cannonSupperCapY[10][1 << 10][2]= {0};
+
+int32_t bitMaskY[256] = {0}, bitMaskX[256] = {0};
+int32_t knightMvDst[256][12] = {0}, knightMvPin[256][8] = {0};
+
 
 // 用于判断棋子是否在棋盘上
 const int32_t _IN_BOARD[256] = {
@@ -154,157 +165,10 @@ const int32_t mvvValues[48] = {
     50, 10, 10, 10, 10, 30, 30, 40, 40, 30, 30, 20, 20, 20, 20, 20
 };
 
-
-
-/* 棋子类型-位置价值表
- * 获取棋子类型见 PIECE_TYPE(pc) 函数
- * 注意黑方在下 初始 sq 大
- */ 
-const int32_t SQ_VALUE[PIECE_EMPTY + 1][256] = {
-    { // 将
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  2,  2,  2,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0, 11, 15, 11,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, {    // 仕
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0, 20,  0, 20,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0, 23,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0, 20,  0, 20,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, { // 相
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0, 20,  0,  0,  0, 20,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0, 18,  0,  0,  0, 23,  0,  0,  0, 18,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0, 20,  0,  0,  0, 20,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, { // 马
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0, 90, 90, 90, 96, 90, 96, 90, 90, 90,  0,  0,  0,  0,
-        0,  0,  0, 90, 96,103, 97, 94, 97,103, 96, 90,  0,  0,  0,  0,
-        0,  0,  0, 92, 98, 99,103, 99,103, 99, 98, 92,  0,  0,  0,  0,
-        0,  0,  0, 93,108,100,107,100,107,100,108, 93,  0,  0,  0,  0,
-        0,  0,  0, 90,100, 99,103,104,103, 99,100, 90,  0,  0,  0,  0,
-        0,  0,  0, 90, 98,101,102,103,102,101, 98, 90,  0,  0,  0,  0,
-        0,  0,  0, 92, 94, 98, 95, 98, 95, 98, 94, 92,  0,  0,  0,  0,
-        0,  0,  0, 93, 92, 94, 95, 92, 95, 94, 92, 93,  0,  0,  0,  0,
-        0,  0,  0, 85, 90, 92, 93, 78, 93, 92, 90, 85,  0,  0,  0,  0,
-        0,  0,  0, 88, 85, 90, 88, 90, 88, 90, 85, 88,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, { // 车
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,206,208,207,213,214,213,207,208,206,  0,  0,  0,  0,
-        0,  0,  0,206,212,209,216,233,216,209,212,206,  0,  0,  0,  0,
-        0,  0,  0,206,208,207,214,216,214,207,208,206,  0,  0,  0,  0,
-        0,  0,  0,206,213,213,216,216,216,213,213,206,  0,  0,  0,  0,
-        0,  0,  0,208,211,211,214,215,214,211,211,208,  0,  0,  0,  0,
-        0,  0,  0,208,212,212,214,215,214,212,212,208,  0,  0,  0,  0,
-        0,  0,  0,204,209,204,212,214,212,204,209,204,  0,  0,  0,  0,
-        0,  0,  0,198,208,204,212,212,212,204,208,198,  0,  0,  0,  0,
-        0,  0,  0,200,208,206,212,200,212,206,208,200,  0,  0,  0,  0,
-        0,  0,  0,194,206,204,212,200,212,204,206,194,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, { // 炮
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,100,100, 96, 91, 90, 91, 96,100,100,  0,  0,  0,  0,
-        0,  0,  0, 98, 98, 96, 92, 89, 92, 96, 98, 98,  0,  0,  0,  0,
-        0,  0,  0, 97, 97, 96, 91, 92, 91, 96, 97, 97,  0,  0,  0,  0,
-        0,  0,  0, 96, 99, 99, 98,100, 98, 99, 99, 96,  0,  0,  0,  0,
-        0,  0,  0, 96, 96, 96, 96,100, 96, 96, 96, 96,  0,  0,  0,  0,
-        0,  0,  0, 95, 96, 99, 96,100, 96, 99, 96, 95,  0,  0,  0,  0,
-        0,  0,  0, 96, 96, 96, 96, 96, 96, 96, 96, 96,  0,  0,  0,  0,
-        0,  0,  0, 97, 96,100, 99,101, 99,100, 96, 97,  0,  0,  0,  0,
-        0,  0,  0, 96, 97, 98, 98, 98, 98, 98, 97, 96,  0,  0,  0,  0,
-        0,  0,  0, 96, 96, 97, 99, 99, 99, 97, 96, 96,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, { // 兵
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  9,  9,  9, 11, 13, 11,  9,  9,  9,  0,  0,  0,  0,
-        0,  0,  0, 19, 24, 34, 42, 44, 42, 34, 24, 19,  0,  0,  0,  0,
-        0,  0,  0, 19, 24, 32, 37, 37, 37, 32, 24, 19,  0,  0,  0,  0,
-        0,  0,  0, 19, 23, 27, 29, 30, 29, 27, 23, 19,  0,  0,  0,  0,
-        0,  0,  0, 14, 18, 20, 27, 29, 27, 20, 18, 14,  0,  0,  0,  0,
-        0,  0,  0,  7,  0, 13,  0, 16,  0, 13,  0,  7,  0,  0,  0,  0,
-        0,  0,  0,  7,  0,  7,  0, 15,  0,  7,  0,  7,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }, { // 空
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-    }
-};
-
 // 棋子走法
 const int32_t KING_DELTA[4] = {-16, -1, 1, 16};
 const int32_t ADVISOR_DELTA[4] = {-17, -15, 15, 17};
 const int32_t KNIGHT_DELTA[4][2] = {{-33, -31}, {-18, 14}, {-14, 18}, {31, 33}};
-const int32_t KING_KNIGHT_DELTA[4][2] = {{-18, -33}, {-31, -14}, {31, 14}, {18, 33}}; // 用于判断是否被马将军 和仕关联
 
 // 将FEN串中棋子标识转化为对应棋子类型 需toupper转化为大写
 int32_t charToPt(char c) {
@@ -350,28 +214,6 @@ char ptToChar(int32_t pt) {
     }
 }
 
-int_fast32_t historyIndex(int32_t mv) {
-    return ((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
-             PIECE_TYPE(pos.squares[SRC(mv)]))
-            << 8) +
-           DST(mv);
-}
-
-void setHistory(int32_t mv, int32_t depth) {
-    historyTable[((((SIDE_TAG(pos.sidePly) - 16) >> 1) +
-             PIECE_TYPE(pos.squares[SRC(mv)]))
-            << 8) +
-           DST(mv)] += depth * depth;
-}
-
-void setKillerTable(int32_t mv) {
-    auto tablePtr = killerTable[pos.distance];
-    if (tablePtr[0] != mv) {
-        tablePtr[1] = tablePtr[0]; // newKillerMove -> 0, 0 -> 1
-        tablePtr[0] = mv;
-    }
-}
-
 std::string MOVE_TO_STR(int32_t mv) {
     int src = SRC(mv), dst = DST(mv);
     int preX = GET_X(src) - X_FROM, preY = GET_Y(src) - Y_FROM;
@@ -388,10 +230,140 @@ int32_t STR_TO_MOVE(std::string mvStr) {
     return MOVE(src, dst);
 }
 
+// 初始化位行列
+void Position::preGen() {
+    memset(rookCapY, -1, sizeof(rookCapY));
+    memset(cannonCapY, -1, sizeof(cannonCapY));
+    memset(rookCapX, -1, sizeof(rookCapX));
+    memset(cannonCapX, -1, sizeof(cannonCapX));
+    memset(cannonSupperCapY, -1, sizeof(cannonSupperCapY));
+    memset(knightMvDst, 0, sizeof(knightMvDst));
+    memset(knightMvPin, 0, sizeof(knightMvPin));
+
+    // 初始化 bitMask，行Y的 bitMask 通过计算 X 获得
+    for (int32_t sq = 0; sq < 256; sq++) {
+        if (IN_BOARD(sq)) {
+            bitMaskY[sq] = 1 << (GET_X(sq) - X_FROM);
+            bitMaskX[sq] = 1 << (GET_Y(sq) - Y_FROM);
+        } else {
+            bitMaskY[sq] = 0;
+            bitMaskX[sq] = 0;
+        }
+    }
+
+    // 生成横向预置吃子数组
+    for (int32_t i = 0; i < 9; i++) { // 枚举所在列
+        for (int32_t st = 0; st < 512; st++){ // 枚举行状态
+            for (int32_t j = i + 1, cnt = 0; j < 9; j++) { // 枚举右侧棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapX[i][st][1] = j + X_FROM;
+                    else if (cnt == 2) {
+                        cannonCapX[i][st][1] = j + X_FROM;
+                        break;
+                    }
+                }
+            }
+
+            for (int32_t j = i - 1, cnt = 0; j >= 0; j--) { // 枚举左侧棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapX[i][st][0] = j + X_FROM;
+                    else if (cnt == 2) {
+                        cannonCapX[i][st][0] = j + X_FROM;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // 生成竖向预置吃子数组
+    for (int32_t i = 0; i < 10; i++) { // 枚举所在行
+        for (int32_t st = 0; st < 1024; st++) { // 枚举列状态
+            for (int32_t j = i + 1, cnt = 0; j < 10; j++) { // 枚举上方(sq大)棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapY[i][st][1] = j + Y_FROM;
+                    else if (cnt == 2) {
+                        cannonCapY[i][st][1] = j + Y_FROM;
+                    } else if (cnt == 3) {
+                        cannonSupperCapY[i][st][1] = j + Y_FROM;
+                        break;
+                    }
+                }
+            }
+
+            for (int32_t j = i - 1, cnt = 0; j >= 0; j--) { // 枚举下方(sq小)棋子
+                if (st & (1 << j)) {
+                    ++cnt;
+                    if (cnt == 1) rookCapY[i][st][0] = j + Y_FROM;
+                    else if (cnt == 2) {
+                        cannonCapY[i][st][0] = j + Y_FROM;
+                    } else if (cnt == 3) {
+                        cannonSupperCapY[i][st][0] = j + Y_FROM;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // 初始化马的走法
+    for (int32_t sq = 0; sq < 256; sq++) {
+        if (IN_BOARD(sq)) {
+            int32_t cnt = 0;
+            for (int32_t j = 0, dst; j < 4; j++) {
+                dst = sq + KING_DELTA[j]; // 马腿位置
+                if (!IN_BOARD(dst)) continue; // 马腿越界
+                for (int32_t k = 0; k < 2; k++) {
+                    dst = sq + KNIGHT_DELTA[j][k];
+                    if (!IN_BOARD(dst)) continue;
+                    knightMvDst[sq][cnt] = dst;
+                    knightMvPin[sq][cnt++] = sq + KING_DELTA[j];
+                }
+            }
+        }
+    }
+}
+
+// 返回 Rook 左右吃子的位置
+int32_t Position::getRookCapX(int32_t src, bool tag) {
+    int32_t x = rookCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
+    return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
+}
+
+// 返回 Cannon 左右吃子的位置
+int32_t Position::getCannonCapX(int32_t src, bool tag) {
+    int32_t x = cannonCapX[GET_X(src) - X_FROM][this->stateY[GET_Y(src)]][tag];
+    return x == -1 ? 0 : COORD_XY(x, GET_Y(src));
+}
+
+// 返回 Rook 上下吃子的位置
+int32_t Position::getRookCapY(int32_t src, bool tag) {
+    int32_t y = rookCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
+    return y == -1 ? 0 : COORD_XY(GET_X(src), y);
+}
+
+// 返回 Cannon 上下吃子的位置
+int32_t Position::getCannonCapY(int32_t src, bool tag) {
+    int32_t y = cannonCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
+    return y == -1 ? 0 : COORD_XY(GET_X(src), y);
+}
+
+// 返回 Cannon 上下隔两子吃子的位置
+int32_t Position::getCannonSupperCapY(int32_t src, bool tag) {
+    int32_t y = cannonSupperCapY[GET_Y(src) - Y_FROM][this->stateX[GET_X(src)]][tag];
+    return y == -1 ? 0 : COORD_XY(GET_X(src), y);
+}
+
 // 初始化
 void Position::clear() {
     memset(this->squares, 0, sizeof(this->squares));
     memset(this->pieces, 0, sizeof(this->pieces));
+    memset(this->stateY, 0, sizeof(this->stateY));
+    memset(this->stateX, 0, sizeof(this->stateX));
     this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
     this->vlRed = this->vlBlack = 0;
     this->moveNum = 0, this->distance = 0;
@@ -412,7 +384,12 @@ void Position::addPiece(int32_t sq, int32_t pc, bool del) {
 
         this->squares[sq] = pc, this->pieces[pc] = sq;
     }
-    // this->zobr.Xor(PreGen.zobrTable[pt][sq]);
+
+    if (pc) { // pc 不为 0 才修改
+        this->stateY[GET_Y(sq)] ^= bitMaskY[sq];
+        this->stateX[GET_X(sq)] ^= bitMaskX[sq];
+    }
+    
     this->zobrist->zobristUpdateMove(sq, pc);
 }
 
@@ -541,7 +518,7 @@ int32_t Position::nullOkay() {
 }
 // 空步搜索得到的分值是否有效
 int32_t Position::nullSafe() {
-    return (this->sidePly ? this->vlBlack : this->vlRed) > 200;
+    return (this->sidePly ? this->vlBlack : this->vlRed) > 230;
 }
 
 int32_t Position::repValue(int32_t vl) {
@@ -561,92 +538,51 @@ int32_t Position::drawValue() {
     return (this->distance & 1) ? DRAW_VALUE : -DRAW_VALUE;
 }
 
-#define CHECK_PIECE()                   \
-    {                                 \
-        src = src + delta;            \
-        while (src != dst) {          \
-            if (this->squares[src]) { \
-                checked = false;      \
-                break;                \
-            }                         \
-            src += delta;             \
-        }                             \
-    }
 // 判断是否被将军 是则返回 true
 int32_t Position::isChecked() {
     int32_t sideTag = SIDE_TAG(this->sidePly);
     int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
-    int32_t src, dst, delta, checked, i, j, k;
+    int32_t src, dst, i, pin;
     
-    // 1. 检查对将
+    // 1. 检查对将 通过位列实现
     src = this->pieces[sideTag + KING_FROM];
     dst = this->pieces[oppSideTag + KING_FROM];
-    checked = true;
-    if (SAME_X(src, dst)) { // 相同列
-        delta = (dst > src) ? 16 : -16;
-        CHECK_PIECE();
-        if (checked) return true;
-    }
+    if (this->getRookCapY(src, dst > src) == dst) return true;
     
     // 2. 检查马
-    src = this->pieces[sideTag + KING_FROM];
-    for (j = 0; j < 4; j++) {
-        dst = src + ADVISOR_DELTA[j]; // 马腿
-        if (this->squares[dst] || !IN_BOARD(dst)) continue; // 越界 或者 马腿有棋子
-        for (k = 0; k < 2; k++) {
-            dst = src + KING_KNIGHT_DELTA[j][k];
-            if (!IN_BOARD(dst) || (this->squares[dst] & sideTag)) continue; // 越界或己方棋子
-            if (PIECE_TYPE(this->squares[dst]) == PIECE_KNIGHT) return true;
+    for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
+        if ((dst = this->pieces[oppSideTag + i])) {
+            pin = KNIGHT_PIN(dst, src); // 注意是从 dst 出发判断
+            if (pin != dst && !this->squares[pin]) return true;
         }
     }
 
-    // 3. 检查车
+    // 3. 检查车 通过位行、列实现
     for (i = ROOK_FROM; i <= ROOK_TO; i++) {
-        src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 ROOK 位置
-        checked = true;
         if (SAME_X(src, dst)) { // 同一列
-            delta = (dst > src) ? 16 : -16;
-            CHECK_PIECE();
-            if (checked) return true;
+            if (dst == this->getRookCapY(src, dst > src)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
-            delta = (dst > src)? 1 : -1;
-            CHECK_PIECE();
-            if (checked) return true;
+            if (dst == this->getRookCapX(src, dst > src)) return true;
         }
     }
 
-    // 4. 检查炮
+    // 4. 检查炮 通过位行、列实现
     for (i = CANNON_FROM; i <= CANNON_TO; i++) {
-        src = this->pieces[sideTag + KING_FROM];
         dst = this->pieces[oppSideTag + i]; // 敌方 CANNON 位置
-        checked = true;
         if (SAME_X(src, dst)) { // 同一列
-            delta = (dst > src) ? 16 : -16;
-            CHECK_PIECE();
-            if (!checked) { // 将与炮中间有子
-                checked = true;
-                CHECK_PIECE(); // 判断子与炮之间是否还有子，若有 checked = false
-                if (checked) return true;
-            }
+            if (dst == this->getCannonCapY(src, dst > src)) return true;
         } else if (SAME_Y(src, dst)) { // 同一行
-            delta = (dst > src)? 1 : -1;
-            CHECK_PIECE();
-            if (!checked) { // 将与炮中间有子
-                checked = true;
-                CHECK_PIECE(); // 判断子与炮之间是否还有子，若有 checked = false
-                if (checked) return true;
-            }
+            if (dst == this->getCannonCapX(src, dst > src)) return true;
         }
     }
 
     // 5. 检查兵
-    src = this->pieces[sideTag + KING_FROM];
     dst = SQ_FORWARED(src, this->sidePly); // 向前走一步
     if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN &&
         !(this->squares[dst] & sideTag))
         return true;
-    // 两侧的兵只不需要判断颜色
+    // 两侧的兵不需要判断颜色
     if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
     if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
     return false;
@@ -663,7 +599,7 @@ int32_t Position::isLegalMove(int32_t mv) {
     // 终点是己方棋子
     if (this->squares[dst] & sideTag) return false;
 
-    int32_t pin(0), delta(0);
+    int32_t pin(0), dirTag(0), rCapDst(0), cCapDist(0);
     switch(PIECE_TYPE(this->squares[src])) { // 判断己方棋子类型
         case PIECE_KING: // 将（帅）
             return IN_FORT(dst) && KING_SPAN(src, dst);
@@ -677,23 +613,37 @@ int32_t Position::isLegalMove(int32_t mv) {
             return pin != src && !this->squares[pin];
         case PIECE_ROOK:
         case PIECE_CANNON: // 车和炮判断                                            一样
-            if (SAME_X(src, dst)) delta = (dst > src) ? 16 : -16; // 同一列
-            else if (SAME_Y(src, dst)) delta = (dst > src) ? 1 : -1; // 同一行
-            else return false; // 不在同一列同一行 不合法
-
-            pin = src + delta; // 向前走一步 再继续直到遇到棋子
-            while (pin != dst && !this->squares[pin]) pin += delta;
-
-            if (pin == dst)  // 起点与终点间没有棋子
-                return !this->squares[dst] || PIECE_TYPE(this->squares[src]) == PIECE_ROOK;
-
-            // 此时只可能是炮且跳吃
-            if (!this->squares[dst] || PIECE_TYPE(this->squares[src]) != PIECE_CANNON)
-                return false;
-
-            pin += delta; // 向前走一步
-            while (pin != dst && !this->squares[pin]) pin += delta;
-            return pin == dst; // 判断中间是否还有子
+            if (SAME_X(src, dst)) { // 同一列
+                dirTag = dst > src ? true : false;
+                rCapDst = this->getRookCapY(src, dirTag);
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
+                    if (rCapDst == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                } else {
+                    cCapDist = this->getCannonCapY(src, dirTag);
+                    if (cCapDist == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                }
+            } else if (SAME_Y(src, dst)) {
+                dirTag = dst > src ? true : false;
+                rCapDst = this->getRookCapX(src, dirTag);
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
+                    if (rCapDst == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                } else {
+                    cCapDist = this->getCannonCapX(src, dirTag);
+                    if (cCapDist == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                }
+            } else return false; // 不在同一列同一行 不合法
 
         case PIECE_PAWN:
             // 已过河，可以向左右两个方向走
@@ -704,6 +654,76 @@ int32_t Position::isLegalMove(int32_t mv) {
         default: return false;
     }
     assert(false); // shouldn't reach here
+    return false;
+}
+
+// 判断一个位置是否被保护 保护方为 side
+int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
+    int32_t sideTag = SIDE_TAG(side);
+    int32_t src, i, pin;
+    
+    if (SELF_SIDE(dst, side)) {
+        // 1. 受到己方将保护
+        src = this->pieces[sideTag + KING_FROM];
+        if (src && KING_SPAN(src, dst)) return true;
+
+        // 2. 受到己方士保护
+        for (i = ADVISOR_FROM; i <= ADVISOR_TO; i++) {
+            src = this->pieces[sideTag + i];
+            if (src && ADVISOR_SPAN(src, dst)) return true;
+        }
+
+        // 3. 受到己方象的保护
+        for (i = BISHOP_FROM; i <= BISHOP_TO; i++) {
+            src = this->pieces[sideTag + i];
+            if (src && BISHOP_SPAN(src, dst) &&
+                !this->squares[BISHOP_PIN(src, dst)])
+                return true;
+        }
+    } else {
+        src = dst - 1;
+        if ((this->squares[src] & sideTag) &&
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            return true;
+        src = dst + 1;
+        if ((this->squares[src] & sideTag) &&
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            return true;
+    }
+    // 4. 受到己方马的保护
+    for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
+        if ((src = this->pieces[sideTag + i])) {
+            pin = KNIGHT_PIN(src, dst);
+            if (pin != src && !this->squares[pin]) return true;
+        }
+    }
+
+    // 3. 受到己方车的保护 通过位行、列实现
+    for (i = ROOK_FROM; i <= ROOK_TO; i++) {
+        src = this->pieces[sideTag + i];
+        if (SAME_X(src, dst)) { // 同一列
+            if (src == this->getRookCapY(dst, src > dst)) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            if (src == this->getRookCapX(dst, src > dst)) return true;
+        }
+    }
+
+    // 4. 受到己方炮的保护 通过位行、列实现
+    for (i = CANNON_FROM; i <= CANNON_TO; i++) {
+        src = this->pieces[sideTag + i];; // 敌方 CANNON 位置
+        if (SAME_X(src, dst)) { // 同一列
+            if (src == this->getCannonCapY(dst, src > dst)) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            if (src == this->getCannonCapX(dst, src > dst)) return true;
+        }
+    }
+
+    // 5. 受到己方兵的保护
+    src = SQ_FORWARED(dst, side ^ 1); // 向后走一步，能否遇到己方兵
+    if ((this->squares[src] & sideTag) &&
+        PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+        return true;
+
     return false;
 }
 

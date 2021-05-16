@@ -32,7 +32,7 @@ std::pair<int32_t, int32_t> searchMain() {
             fprintf(fpw, "depth: %d, time: %lld\n", depth, (long long)(clock() - searchSt));
             fclose(fpw);
         #endif
-        if (clock() - searchSt > CLOCKS_PER_SEC) {
+        if (clock() - searchSt > CLOCKS_PER_SEC * 5) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
@@ -45,10 +45,11 @@ std::pair<int32_t, int32_t> searchMain() {
 }
 
 std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
+    srand(time(nullptr));
     int32_t vlBest(-MATE_VALUE), vl;
     int32_t mvBest(0), mv;
     
-    pos.generateMoves();
+    pos.genMovesInit();
     while ((mv = pos.nextMove())) {
         if (!pos.makeMove(mv)) continue;
         // 判断能否吃掉敌方将军; 注意 makeMove 后 sidePly 变化
@@ -73,7 +74,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
         if (vl > vlBest) {
             vlBest = vl, mvBest = mv;
             if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) { // 增加走法随机性
-                vlBest += ((rand() - RAND_MAX) % 7);
+                vlBest += ((rand() - RAND_MAX) % 5);
                 vlBest = (vlBest == pos.drawValue()) ? vlBest - 1 : vlBest;
             }
         }
@@ -97,7 +98,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     if (vl > -MATE_VALUE) return vl;
 
     // 达到极限深度返回
-    if (pos.distance == DEPTH_LIMIT) return evaluate();
+    if (pos.distance == DEPTH_LIMIT) return pos.evaluate();
     
     // 空着裁剪
     if (!noNull && pos.nullOkay() && !pos.isChecked()){
@@ -114,7 +115,7 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     int32_t vlBest(-MATE_VALUE);
     int32_t mvBest(0), mv, hashFlag = HASH_ALPHA;
 
-    pos.generateMoves(pos.mvHash[pos.distance]);
+    pos.genMovesInit(pos.mvHash[pos.distance]);
     while ((mv = pos.nextMove())) {
        if (!pos.makeMove(mv)) continue;
 
@@ -166,24 +167,22 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
     if (vl) return pos.repValue(vl);
  
     // 2. 达到极限深度 DEPTH 返回估值
-    if (pos.distance == DEPTH_LIMIT) return evaluate();
+    if (pos.distance == DEPTH_LIMIT) return pos.evaluate();
 
     // 3. 生成着法
     if ((ischecked = pos.isChecked())) { // 被将军 生成全部着法
         pos.resetMvKillerHash();
         pos.genAllMoves(); 
     } else { // 不被将军，先进行局面评估是否能截断
-        vl = evaluate();
+        vl = pos.evaluate();
         if (vl > vlBest) {
             if (vl >= beta) return vl;
             vlBest = vl;
             if (vl > alpha) alpha = vl;
         }
-        if (!ischecked) { // 将军未被威胁 仅生成吃子着法
-            pos.resetMvKillerHash();
-            // if (debug) std::cout << pos.distance << std::endl;
-            pos.genCapMoves();
-        }
+        // 未被截断，生成吃子着法
+        pos.resetMvKillerHash();
+        pos.genCapMoves();
     }
 
     pos.phase[pos.distance] = PHASE::OTHER; // 不进行其它启发
