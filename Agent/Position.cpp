@@ -477,7 +477,10 @@ bool Position::makeMove(int32_t mv) {
 
     this->changeSide(); // 交换走子方
 
-    mvListPtr->chk = this->isChecked();
+    mvListPtr->chk = this->isChecked(); // 用于判断长将
+    if (!mvListPtr->cap && !mvListPtr->chk)
+        mvListPtr->chk = -this->pcChased(mv); // 长捉, chk 为负
+
     this->distance++;
     this->moveNum++;
     return true;
@@ -540,26 +543,41 @@ int32_t Position::drawValue() {
 
 int32_t Position::repStatus(int32_t repCount) {
     bool selfSide = false;
-    bool perpetualCheck = true;
-    bool oppPerpetualCheck = true;
-    int32_t i = this->moveNum - 1;
-    while (i >= 0 && this->moveList[i].mv && !this->moveList[i].cap) {
+    int32_t perpetualCheck = 0x1ffff;
+    int32_t oppPerpetualCheck = 0x1ffff;
+    int32_t i = this->moveNum - 1, chk;
+    while (~i && this->moveList[i].mv && !this->moveList[i].cap) {
+        chk = this->moveList[i].chk; // 0 <= chk < 16
         if (selfSide) {
-            perpetualCheck &= this->moveList[i].chk;
+            if (!chk) perpetualCheck = 0;
+            else if (chk > 0) perpetualCheck &= 0x10000; // 0x10000 表示长将
+            else perpetualCheck &= (1 << (-chk)); // 0x00000 ~ 0x0ffff 表示长捉
+
             if (this->moveList[i].key == this->zobrist->getCurKey()) {
                 repCount--;
                 if (repCount == 0) {
-                    return 1 + (perpetualCheck ? 2 : 0) +
-                           (oppPerpetualCheck ? 4 : 0);
+                    perpetualCheck =
+                        (perpetualCheck & 0xffff) ? 0xffff : perpetualCheck;
+                    oppPerpetualCheck = (oppPerpetualCheck & 0xffff)
+                                            ? 0xffff
+                                            : oppPerpetualCheck;
+
+                    return (perpetualCheck > oppPerpetualCheck)
+                               ? 3 /*本方单方面长打*/
+                               : ((perpetualCheck < oppPerpetualCheck)
+                                      ? 5 /*对方单方面长打*/
+                                      : (perpetualCheck ? 7 : 1)); /*双方长打或无长打*/
                 }
             }
         } else {
-            oppPerpetualCheck &= this->moveList[i].chk;
+            if (!chk) oppPerpetualCheck = 0;
+            else if (chk > 0) oppPerpetualCheck &= 0x10000;
+            else oppPerpetualCheck &= (1 << (-chk));
         }
         selfSide ^= true;
         i--;
     }
-    return 0;
+    return 0; // 无重复局面
 }
 
 // 通过FEN串初始化棋局

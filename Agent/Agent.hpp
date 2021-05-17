@@ -163,9 +163,9 @@ void Agent::move() {
     if (!pos.makeMove(STR_TO_MOVE(s))) {
         std::cout << "checked" << std::endl;
     }
-    pos.changeSide();
+    // pos.changeSide();
     pos.debug();
-    // std::cout << pos.repStatus() << std::endl;
+    std::cout << pos.repStatus() << std::endl;
 }
 
 void Agent::printVl() {

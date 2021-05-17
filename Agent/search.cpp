@@ -15,6 +15,12 @@ std::pair<int32_t, int32_t> searchMain() {
     bestMv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
     if (bestMv && pos.isLegalMove(bestMv))
         return {0, bestMv};
+    #ifdef USE_UCCI
+        FILE* fpw = fopen("output.txt", "rt+");
+        fseek(fpw, 0, 2);
+        fprintf(fpw, "bookMvBest: %s\n", MOVE_TO_STR(bestMv).c_str());
+        fclose(fpw);
+    #endif
 
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
     memset(killerTable, 0, sizeof(killerTable));

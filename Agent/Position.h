@@ -333,7 +333,7 @@ struct Position {
     int32_t isLegalMove(int32_t mv);
     // 判断一个位置是否被保护 保护方为 side
     int32_t isProtected(int32_t side, int32_t src, int32_t sqExcp = -1);
-    // 判断捉 返回被捉的棋子类型 (0~16)
+    // 判断捉 返回被捉的棋子类型 (0~15)
     int32_t pcChased(int32_t mv);
 
     // 通过FEN串初始化棋局

@@ -471,7 +471,7 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
 }
 
 int32_t Position::pcChased(int32_t mv) {
-    int32_t src = DST(mv); // 注意棋子已被 moved
+    int32_t src(DST(mv)); // 注意棋子已被 moved
     int32_t i, j, dst, sideTag(SIDE_TAG(this->sidePly)), cap, sameX;
 
     switch (PIECE_TYPE(this->squares[src])) {
