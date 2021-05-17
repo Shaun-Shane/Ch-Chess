@@ -279,3 +279,286 @@ void Position::genCapMoves() {
     std::sort(this->mvsGen[this->distance],
               this->mvsGen[this->distance] + this->genNum[this->distance]);
 }
+
+// 判断是否被将军 是则返回 true
+int32_t Position::isChecked() {
+    int32_t sideTag = SIDE_TAG(this->sidePly);
+    int32_t oppSideTag = OPP_SIDE_TAG(this->sidePly);
+    int32_t src, dst, i, pin;
+    
+    // 1. 检查对将 通过位列实现
+    src = this->pieces[sideTag + KING_FROM];
+    dst = this->pieces[oppSideTag + KING_FROM];
+    if (this->getRookCapY(src, dst > src) == dst) return true;
+    
+    // 2. 检查马
+    for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
+        if ((dst = this->pieces[oppSideTag + i])) {
+            pin = KNIGHT_PIN(dst, src); // 注意是从 dst 出发判断
+            if (pin != dst && !this->squares[pin]) return true;
+        }
+    }
+
+    // 3. 检查车 通过位行、列实现
+    for (i = ROOK_FROM; i <= ROOK_TO; i++) {
+        dst = this->pieces[oppSideTag + i]; // 敌方 ROOK 位置
+        if (SAME_X(src, dst)) { // 同一列
+            if (dst == this->getRookCapY(src, dst > src)) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            if (dst == this->getRookCapX(src, dst > src)) return true;
+        }
+    }
+
+    // 4. 检查炮 通过位行、列实现
+    for (i = CANNON_FROM; i <= CANNON_TO; i++) {
+        dst = this->pieces[oppSideTag + i]; // 敌方 CANNON 位置
+        if (SAME_X(src, dst)) { // 同一列
+            if (dst == this->getCannonCapY(src, dst > src)) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            if (dst == this->getCannonCapX(src, dst > src)) return true;
+        }
+    }
+
+    // 5. 检查兵
+    dst = SQ_FORWARED(src, this->sidePly); // 向前走一步
+    if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN &&
+        !(this->squares[dst] & sideTag))
+        return true;
+    // 两侧的兵不需要判断颜色
+    if (PIECE_TYPE(this->squares[src - 1]) == PIECE_PAWN) return true;
+    if (PIECE_TYPE(this->squares[src + 1]) == PIECE_PAWN) return true;
+    return false;
+}
+
+// 下为着法判断部分 和着法生成写法类似
+
+int32_t Position::isLegalMove(int32_t mv) {
+    int32_t src = SRC(mv); // 获取着法起点
+    int32_t sideTag = SIDE_TAG(this->sidePly);
+
+    // 起点不是己方棋子或无子
+    if (!(this->squares[src] & sideTag)) return false;
+
+    int32_t dst = DST(mv);
+    // 终点是己方棋子
+    if (this->squares[dst] & sideTag) return false;
+
+    int32_t pin(0), dirTag(0), rCapDst(0), cCapDist(0);
+    switch(PIECE_TYPE(this->squares[src])) { // 判断己方棋子类型
+        case PIECE_KING: // 将（帅）
+            return IN_FORT(dst) && KING_SPAN(src, dst);
+        case PIECE_ADVISOR: // 仕（仕）
+            return IN_FORT(dst) && ADVISOR_SPAN(src, dst);
+        case PIECE_BISHOP: // 象（相）
+            return SELF_SIDE(dst, this->sidePly) && BISHOP_SPAN(src, dst) &&
+                   !this->squares[BISHOP_PIN(src, dst)];
+        case PIECE_KNIGHT: // 马
+            pin = KNIGHT_PIN(src, dst);
+            return pin != src && !this->squares[pin];
+        case PIECE_ROOK:
+        case PIECE_CANNON: // 车和炮判断                                            一样
+            if (SAME_X(src, dst)) { // 同一列
+                dirTag = dst > src ? true : false;
+                rCapDst = this->getRookCapY(src, dirTag);
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
+                    if (rCapDst == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                } else {
+                    cCapDist = this->getCannonCapY(src, dirTag);
+                    if (cCapDist == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                }
+            } else if (SAME_Y(src, dst)) {
+                dirTag = dst > src ? true : false;
+                rCapDst = this->getRookCapX(src, dirTag);
+                if (PIECE_TYPE(this->squares[src]) == PIECE_ROOK) {
+                    if (rCapDst == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                } else {
+                    cCapDist = this->getCannonCapX(src, dirTag);
+                    if (cCapDist == dst || !rCapDst) return true; // 吃子走法或该方向无子
+                    else if (dirTag && dst < rCapDst) return true;
+                    else if (!dirTag && dst > rCapDst) return true;
+                    else return false;
+                }
+            } else return false; // 不在同一列同一行 不合法
+
+        case PIECE_PAWN:
+            // 已过河，可以向左右两个方向走
+            if (!SELF_SIDE(src, this->sidePly) && (dst - src == 1 || src - dst == 1))
+                return true;
+            // 否则只能向前走
+            return dst == SQ_FORWARED(src, this->sidePly);
+        default: return false;
+    }
+    return false;
+}
+
+// 判断一个位置是否被保护 保护方为 side
+int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
+    int32_t sideTag = SIDE_TAG(side);
+    int32_t src, i, pin;
+    
+    if (SELF_SIDE(dst, side)) {
+        // 1. 受到己方将保护
+        src = this->pieces[sideTag + KING_FROM];
+        if (src && KING_SPAN(src, dst)) return true;
+
+        // 2. 受到己方士保护
+        for (i = ADVISOR_FROM; i <= ADVISOR_TO; i++) {
+            src = this->pieces[sideTag + i];
+            if (src && ADVISOR_SPAN(src, dst)) return true;
+        }
+
+        // 3. 受到己方象的保护
+        for (i = BISHOP_FROM; i <= BISHOP_TO; i++) {
+            src = this->pieces[sideTag + i];
+            if (src && BISHOP_SPAN(src, dst) &&
+                !this->squares[BISHOP_PIN(src, dst)])
+                return true;
+        }
+    } else {
+        src = dst - 1;
+        if ((this->squares[src] & sideTag) &&
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            return true;
+        src = dst + 1;
+        if ((this->squares[src] & sideTag) &&
+            PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+            return true;
+    }
+    // 4. 受到己方马的保护
+    for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
+        if ((src = this->pieces[sideTag + i])) {
+            pin = KNIGHT_PIN(src, dst);
+            if (pin != src && !this->squares[pin]) return true;
+        }
+    }
+
+    // 3. 受到己方车的保护 通过位行、列实现
+    for (i = ROOK_FROM; i <= ROOK_TO; i++) {
+        src = this->pieces[sideTag + i];
+        if (SAME_X(src, dst)) { // 同一列
+            if (src == this->getRookCapY(dst, src > dst)) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            if (src == this->getRookCapX(dst, src > dst)) return true;
+        }
+    }
+
+    // 4. 受到己方炮的保护 通过位行、列实现
+    for (i = CANNON_FROM; i <= CANNON_TO; i++) {
+        src = this->pieces[sideTag + i];; // 敌方 CANNON 位置
+        if (SAME_X(src, dst)) { // 同一列
+            if (src == this->getCannonCapY(dst, src > dst)) return true;
+        } else if (SAME_Y(src, dst)) { // 同一行
+            if (src == this->getCannonCapX(dst, src > dst)) return true;
+        }
+    }
+
+    // 5. 受到己方兵的保护
+    src = SQ_FORWARED(dst, side ^ 1); // 向后走一步，能否遇到己方兵
+    if ((this->squares[src] & sideTag) &&
+        PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
+        return true;
+
+    return false;
+}
+
+int32_t Position::pcChased(int32_t mv) {
+    int32_t src = DST(mv); // 注意棋子已被 moved
+    int32_t i, j, dst, sideTag(SIDE_TAG(this->sidePly)), cap, sameX;
+
+    switch (PIECE_TYPE(this->squares[src])) {
+        case PIECE_KNIGHT:
+            j = 0, dst = knightMvDst[src][j];
+            while (dst) {
+                // 马腿无棋子
+                if (!this->squares[knightMvPin[src][j]]) {
+                    cap = this->squares[dst];
+                    if (cap & sideTag) { // 被捉子
+                        cap -= sideTag;
+                        if (cap <= ROOK_TO) {
+                            // 马捉车，仕、马、象不考虑
+                            if (cap >= ROOK_FROM) return cap;
+                        } else {
+                            if (cap <= CANNON_TO) {
+                                // 马捉无保护的炮
+                                if (!this->isProtected(this->sidePly, dst)) return cap;
+                            } else {
+                                // 马捉过河无保护的卒
+                                if (!SELF_SIDE(dst, this->sidePly) &&
+                                    !this->isProtected(this->sidePly, dst))
+                                    return cap;
+                            }
+                        }
+                    }
+                }
+                j++, dst = knightMvDst[src][j];
+            }
+            break;
+
+        case PIECE_ROOK:
+            sameX = SAME_X(SRC(mv), src);
+            for (i = 0; i < 2; i++) {
+                // 竖向移动，判断横向捉子；横向移动，判断竖向捉子
+                dst = sameX ? this->getRookCapX(src, i) : this->getRookCapY(src, i);
+                cap = this->squares[dst];
+                if (cap & sideTag) {
+                    cap -= sideTag;
+                    if (cap <= ROOK_TO) {
+                        // 车捉无保护马，其余情况不考虑
+                        if (KNIGHT_FROM <= cap && cap <= KNIGHT_TO &&
+                            !this->isProtected(this->sidePly, dst)) {
+                            return cap;
+                        }
+                    } else {
+                        if (cap <= CANNON_TO) {
+                            // 车捉无保护的炮
+                            if (!this->isProtected(this->sidePly, dst)) return cap;
+                        } else {
+                            // 车捉过河无保护的卒
+                            if (!SELF_SIDE(dst, this->sidePly) &&
+                            !this->isProtected(this->sidePly, dst))
+                                return cap;
+                        }
+                    }
+                }
+            }
+            break;
+        
+        case PIECE_CANNON:
+            sameX = SAME_X(SRC(mv), src);
+            for (i = 0; i < 2; i++) {
+                // 竖向移动，判断横向捉子；横向移动，判断竖向捉子
+                dst = sameX ? this->getCannonCapX(src, i) : this->getCannonCapY(src, i);
+                cap = this->squares[dst];
+                if (cap & sideTag) {
+                    cap -= sideTag;
+                    if (cap <= ROOK_TO) {
+                        // 炮捉无保护马 或 车，其余情况不考虑
+                        if (cap >= KNIGHT_FROM) {
+                            if (cap <= KNIGHT_TO) {
+                                // 炮捉无保护马
+                                if (!this->isProtected(this->sidePly, dst)) return cap;
+                            } else return cap; // 炮捉车
+                        }
+                    } else {
+                        // 炮捉无保护兵，炮捉炮不考虑
+                        if (cap >= PAWN_FROM) {
+                            if (!SELF_SIDE(dst, this->sidePly) &&
+                            !this->isProtected(this->sidePly, dst))
+                                return cap;
+                        }
+                    }
+                }
+            }
+            break;
+    }
+    return 0;
+}

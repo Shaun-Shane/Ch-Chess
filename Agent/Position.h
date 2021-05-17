@@ -313,17 +313,11 @@ struct Position {
     int32_t drawValue();
     // 输棋分值 与深度有关
     int32_t mateValue();
-    // 判断是否被将军 是则返回 true
-    int32_t isChecked();
-    // 判断着法 mv 是否合法
-    int32_t isLegalMove(int32_t mv);
-    // 判断一个位置是否被保护 保护方为 side
-    int32_t isProtected(int32_t side, int32_t src, int32_t sqExcp = -1);
     // 判断重复局面
     int32_t repStatus(int32_t repCount = 1);
     
 
-    // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp 
+    // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp
     void genMovesInit(int32_t mvHash = 0);
     // 全部着法生成
     void genAllMoves();
@@ -333,7 +327,14 @@ struct Position {
     void genCapMoves();
     // 将 mvKiller, mvHash 清零
     void resetMvKillerHash();
-
+    // 判断是否被将军 是则返回 true。 和着法生成类似 也放在 genMoves.cpp 中
+    int32_t isChecked();
+    // 判断着法 mv 是否合法
+    int32_t isLegalMove(int32_t mv);
+    // 判断一个位置是否被保护 保护方为 side
+    int32_t isProtected(int32_t side, int32_t src, int32_t sqExcp = -1);
+    // 判断捉 返回被捉的棋子类型 (0~16)
+    int32_t pcChased(int32_t mv);
 
     // 通过FEN串初始化棋局
     void fromFen(const char* fen);
