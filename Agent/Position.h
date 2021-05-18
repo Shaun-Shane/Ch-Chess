@@ -33,7 +33,7 @@ constexpr int32_t CANNON_TO = 10;   // 炮
 constexpr int32_t PAWN_FROM = 11;   // 卒
 constexpr int32_t PAWN_TO = 15;     // 卒
 
-enum PHASE {HASH, KILLER_1, KILLER_2, GEN_MOVES, OTHER}; // 启发阶段
+enum PHASE {HASH, KILLER_1, KILLER_2, GEN_CAP, CAP, GEN_NCAP, OTHER}; // 启发阶段
 
 constexpr bool DEL_PIECE = true;   // 删除棋子
 
@@ -164,11 +164,6 @@ extern const int32_t mvvValues[48];
 
 // 获得棋子类型
 inline int32_t PIECE_TYPE(int32_t pc) { return pieceTypes[pc]; }
-
-// 获得棋子简单分值
-inline int32_t MVV_LVA(int32_t pcV, int32_t pcA) { 
-    return mvvValues[pcV] - lvaValues[pcA]; 
-}
 
 /* SIDE_TAG()，红方设为 16，黑方设为 32。
  * 用 "SIDE_TAG() + i" 选择棋子的类型， "i" 从 0 到 15 依次是：
@@ -316,6 +311,8 @@ struct Position {
     // 判断重复局面
     int32_t repStatus(int32_t repCount = 1);
     
+    // 获得MVV/LVA分值 pcV 为被吃子
+    int32_t mvvLva(int32_t pcV, int32_t pcA);
 
     // 部分着法生成，被将军时生成全部着法，之后按不同阶段启发 见 genMoves.cpp
     void genMovesInit(int32_t mvHash = 0);

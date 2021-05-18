@@ -1,7 +1,6 @@
 #include "Position.h"
 
 void Position::resetMvKillerHash() {
-    this->mvHash[this->distance] = 0;
     this->mvKiller1[this->distance] = 0;
     this->mvKiller2[this->distance] = 0; // 清空置换表 杀手着法
     this->phase[this->distance] = PHASE::HASH; // 从置换表启发开始
@@ -23,10 +22,11 @@ void Position::genMovesInit(int32_t mvHash) { // mvHash 默认为 0
 int32_t Position::nextMove() {
     int32_t mv = 0;
     switch (this->phase[this->distance]) {
+        // 1. 置换表启发阶段
         case PHASE::HASH:
             this->phase[this->distance] = PHASE::KILLER_1;
             mv = this->mvHash[this->distance];
-            if (mv && this->isLegalMove(mv)) {
+            if (mv && this->isLegalMove(mv)) { // 保险起见还是加上合法着法判断
                 return mv;
             }
         // 2. 第一个杀手着法
@@ -39,17 +39,30 @@ int32_t Position::nextMove() {
                 }
         // 3. 第二个杀手着法
         case PHASE::KILLER_2:
-            this->phase[this->distance] = PHASE::GEN_MOVES;
+            this->phase[this->distance] = PHASE::GEN_CAP;
             mv = this->mvKiller2[this->distance];
             if (mv != this->mvHash[this->distance] && mv &&
                 this->isLegalMove(mv)) {
                     return mv;
                 }
-
-        // 4. 生成所有着法，完成后立即进入下一阶段；
-        case PHASE::GEN_MOVES:
+        // 4. 生成吃子着法，完成后立即进入下一阶段；
+        case PHASE::GEN_CAP:
+            this->phase[this->distance] = PHASE::CAP;
+            this->genCapMoves();
+        case PHASE::CAP:
+            while (this->curMvCnt[this->distance] + 1 < this->genNum[this->distance]) {
+                this->curMvCnt[this->distance]++;
+                mv = (this->mvsGen[this->distance] + this->curMvCnt[this->distance])->mv;
+                if (mv != this->mvHash[this->distance] &&
+                    mv != this->mvKiller1[this->distance] &&
+                    mv != this->mvKiller2[this->distance])
+                    return mv;
+            }
+            this->phase[this->distance] = PHASE::GEN_NCAP; // 无吃子走法了，进入下一阶段
+        // 5. 生成非吃子着法，完成后立即进入下一阶段；
+        case PHASE::GEN_NCAP:
             this->phase[this->distance] = PHASE::OTHER;
-            this->genAllMoves(); // 置换表 + 历史表启发
+            this->genNonCapMoves(); // 历史表启发
         default:
             while (this->curMvCnt[this->distance] + 1 < this->genNum[this->distance]) {
                 this->curMvCnt[this->distance]++;
@@ -179,7 +192,7 @@ void Position::genNonCapMoves() {
     {                                                                        \
         if (this->squares[dst] & oppSideTag) {                               \
             mvsGenPtr->mv = MOVE(src, dst);                                  \
-            mvsGenPtr->vl = MVV_LVA(this->squares[dst], this->squares[src]); \
+            mvsGenPtr->vl = mvvLva(this->squares[dst], this->squares[src]); \
             mvsGenPtr++, this->genNum[this->distance]++;                     \
         }                                                                    \
     }
