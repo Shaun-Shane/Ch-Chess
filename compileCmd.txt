@@ -1,1 +1,1 @@
-g++ -O4 -std=c++11 -Wall "-Wl,--stack=268435456" main.cpp agent\Position.cpp agent\genMoves.cpp agent\evaluate.cpp agent\search.cpp agent\Zobrist.cpp agent\source.cpp -o main.exe
+g++ -o main.exe main.cpp Agent/Position.cpp Agent/genMoves.cpp Agent/evaluate.cpp Agent/search.cpp Agent/Zobrist.cpp Agent/source.cpp -std=c++11 -O4 -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic
