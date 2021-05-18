@@ -580,6 +580,14 @@ int32_t Position::repStatus(int32_t repCount) {
     return 0; // 无重复局面
 }
 
+// 获得MVV/LVA分值 pcV 为被吃子
+int32_t Position::mvvLva(int32_t pcV, int32_t pcA) {
+    return mvvValues[pcV] -
+           (this->isProtected(this->sidePly ^ 1, this->pieces[pcV])
+                ? lvaValues[pcA]
+                : 0);
+}
+
 // 通过FEN串初始化棋局
 void Position::fromFen(const char* fen) {
     int32_t pcRed[PIECE_EMPTY], pcBlack[PIECE_EMPTY];
