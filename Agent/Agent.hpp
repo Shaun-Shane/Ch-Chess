@@ -42,7 +42,7 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
         std::string mvStr = UcciComm.lpdwMovesCoord[i];
         pos.makeMove(STR_TO_MOVE(mvStr)); // makeMove 会 changeSide
         // 吃子则 moveList 清空
-        if (pos.moveList[pos.moveNum - 1].cap) pos.moveNum = 0;
+        if (pos.moveNum && pos.moveList[pos.moveNum - 1].cap) pos.moveNum = 0;
     }
 }
 
