@@ -72,9 +72,8 @@ void Agent::run1() {
             case UCCI_COMM_GO:
 
                 result = searchMain();
-                if(result.second==0)
-                    std::cout<<"nobestmove"<<std::endl;
-                else{
+                if (result.second == 0) std::cout << "nobestmove" << std::endl;
+                else {
                     std::cout << "bestmove " << MOVE_TO_STR(result.second)
                           << std::endl;
                     pos.makeMove(result.second), pos.changeSide();
