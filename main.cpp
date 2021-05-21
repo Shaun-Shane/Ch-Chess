@@ -1,7 +1,11 @@
 // !使用命令行编译时注释掉! 使用 code runner 不要注释!
 // #define VSC_DEBUG
-// 不使用 ucci 时注释掉 search.cpp 中也有
+
+// 不使用 ucci 时注释掉
 #define USE_UCCI
+
+// 不使用 ucci 生成 output.txt 时注释掉 search.cpp 中也有
+// #define FILE_DEBUG
 
 #ifdef VSC_DEBUG
 #define fastcall __attribute__((optimize("-O3")))

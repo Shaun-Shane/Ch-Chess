@@ -43,7 +43,7 @@ struct HashTable {
     HashItem hashTable[1 << HASH_LEVEL];
 };
 
-std::pair<int32_t, int32_t> searchMain();
+std::pair<int32_t, int32_t> searchMain(int32_t timeLimit = 60000);
 
 // 根节点搜索
 std::pair<int32_t, int32_t> searchRoot(int32_t depth);

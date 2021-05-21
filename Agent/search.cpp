@@ -1,26 +1,34 @@
 #include "search.h"
-// 不使用 ucci 时注释掉 main.cpp 中也有
-#define USE_UCCI
+// 不使用 ucci 生成 output.txt 时注释掉 main.cpp 中也有
+// #define FILE_DEBUG
 
-time_t searchSt;
+// 严格时间限制 不使用时注释掉
+#define STRICT_LIMIT
 
-bool debug = false;
+#ifdef STRICT_LIMIT
+static time_t clockPre; // 上一层搜索开始时间
+static time_t clockEnd; // 搜索结束时间
+static bool timeOut = false;
+#else
+static time_t searchSt;
+static bool timeOut = false;
+#endif
 
 HashTable hashTable;
 // 搜索主函数
-std::pair<int32_t, int32_t> searchMain() {
-    auto searchSt = clock();
+std::pair<int32_t, int32_t> searchMain(int32_t timeLimit) {
     int32_t bestVl, bestMv;
 
     bestMv = pos.zobrist->getMoveFromLib(pos.squares, pos.sidePly, startLib);
     if (bestMv && pos.isLegalMove(bestMv))
         return {0, bestMv};
-    #ifdef USE_UCCI
-        FILE* fpw = fopen("output.txt", "rt+");
-        fseek(fpw, 0, 2);
-        fprintf(fpw, "bookMvBest: %s\n", MOVE_TO_STR(bestMv).c_str());
-        fclose(fpw);
-    #endif
+
+#ifdef FILE_DEBUG
+    FILE* fpw = fopen("output.txt", "rt+");
+    fseek(fpw, 0, 2);
+    fprintf(fpw, "bookMvBest: %s\n", MOVE_TO_STR(bestMv).c_str());
+    fclose(fpw);
+#endif
 
     memset(historyTable, 0, sizeof(historyTable)); // 历史表清零
     memset(killerTable, 0, sizeof(killerTable));
@@ -28,20 +36,42 @@ std::pair<int32_t, int32_t> searchMain() {
 
     hashTable.init(); // hash 表清零 所有 flag 设为 EMPTY
 
+#ifdef STRICT_LIMIT
+    timeOut = false;
+    clockPre = clock();
+    time_t clockLim = timeLimit / 1000 * CLOCKS_PER_SEC * 11 / 12;
+    clockEnd = clockLim + clockPre; // clock 限制
+#else
+    searchSt = clock();
+#endif
+
     for (int32_t depth = 4; depth <= 32; depth++) {
-        std::tie(bestVl, bestMv) = searchRoot(depth);
-        #ifndef USE_UCCI
-            std::cout << depth << " " << clock() - searchSt << std::endl;
-        #else
-            FILE* fpw = fopen("output.txt", "rt+");
-            fseek(fpw, 0, 2);
-            fprintf(fpw, "depth: %d, time: %lld\n", depth, (long long)(clock() - searchSt));
-            fclose(fpw);
-        #endif
+#ifndef STRICT_LIMIT
         if (clock() - searchSt > CLOCKS_PER_SEC * 5) {
-           // std::cout << "depth: " << depth << std::endl;
+            // std::cout << "depth: " << depth << std::endl;
             break;
         }
+#else
+        if (timeOut || clock() + (clock() - clockPre) >= clockEnd) {
+            break; // 超时或剩余时间不足以多搜一层
+        }
+        clockPre = clock(); // 重置搜索开始时间
+#endif
+        
+        auto moveInfo = searchRoot(depth);
+        if (!timeOut) std::tie(bestVl, bestMv) = moveInfo;
+
+#ifdef FILE_DEBUG
+        FILE* fpw = fopen("output.txt", "rt+");
+        fseek(fpw, 0, 2);
+        #ifndef STRICT_LIMIT
+            fprintf(fpw, "depth: %d, time: %lld\n", depth, (long long)(clock() - searchSt));
+        #else
+            fprintf(fpw, "depth: %d, time: %lld timeOut:%d\n", depth, (long long)(clockLim - (clockEnd - clock())), timeOut);
+        #endif
+        fclose(fpw);
+#endif
+
         if (bestVl > WIN_VALUE || bestVl < -WIN_VALUE) {
            // std::cout << "depth: " << depth << std::endl;
             break;
@@ -57,6 +87,13 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
     
     pos.genMovesInit();
     while ((mv = pos.nextMove())) {
+#ifdef STRICT_LIMIT
+        if (timeOut || clock() >= clockEnd) {
+            timeOut = true;
+            break; // 超时 停止搜索 结果无效
+        }
+#endif
+    
         if (!pos.makeMove(mv)) continue;
         // 判断能否吃掉敌方将军; 注意 makeMove 后 sidePly 变化
         if (!pos.pieces[SIDE_TAG(pos.sidePly) + KING_FROM]) {
@@ -80,8 +117,7 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
         if (vl > vlBest) {
             vlBest = vl, mvBest = mv;
             if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) { // 增加走法随机性
-                int32_t bias = (rand() * 2 - RAND_MAX) % 3;
-                vlBest += bias;
+                vlBest += (rand() * 2 - RAND_MAX) % 3;
                 vlBest = (vlBest == pos.drawValue()) ? vlBest - 1 : vlBest;
             }
         }
@@ -91,6 +127,10 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
 }
 
 int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
+#ifdef STRICT_LIMIT
+    if (timeOut || clock() >= clockEnd) // 超时 停止搜索 结果无效
+        return timeOut = true, -MATE_VALUE;
+#endif
     if (depth <= 0) return searchQuiescence(alpha, beta);
 
     int32_t vl = pos.mateValue();
@@ -120,10 +160,16 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
     }
 
     int32_t vlBest(-MATE_VALUE);
-    int32_t mvBest(0), mv, hashFlag = HASH_ALPHA;
+    int32_t mvBest(0), mv, hashFlag(HASH_ALPHA);
 
     pos.genMovesInit(pos.mvHash[pos.distance]);
     while ((mv = pos.nextMove())) {
+#ifdef STRICT_LIMIT
+        if (timeOut || clock() >= clockEnd) {
+            timeOut = true; // 超时 停止搜索 结果无效
+            break;
+        }
+#endif
        if (!pos.makeMove(mv)) continue;
 
         int32_t nxtDepth = pos.moveList[pos.moveNum - 1].chk > 0 ? depth : depth - 1;
@@ -163,6 +209,11 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
 }
 
 int32_t searchQuiescence(int32_t alpha, int32_t beta) {
+#ifdef STRICT_LIMIT
+    if (timeOut || clock() >= clockEnd) // 超时 停止搜索 结果无效
+        return timeOut = true, -MATE_VALUE;
+#endif
+
     int32_t vlBest(-MATE_VALUE), vl, mv;
 
     // 1. beta 值比杀棋分数还小，直接返回杀气分数

@@ -56,9 +56,11 @@ void Agent::run1() {
     pos.fromFen(cszStartFen);
     println("ucciok");
     std::pair<int32_t, int32_t> result;
+#ifdef FILE_DEBUG
     FILE *fpw = NULL;
     fpw = fopen("output.txt", "w");
     fclose(fpw);
+#endif
     while (!bQuit) {
         switch (idleline(UcciComm, bDebug)) {
             case UCCI_COMM_ISREADY:
@@ -79,9 +81,11 @@ void Agent::run1() {
                 }
                 fflush(stdout);
 
+            #ifdef FILE_DEBUG
                 fpw = fopen("output.txt", "rt+");
                 this->ucciPrintFile(fpw, result);
                 fclose(fpw);
+            #endif
                 break;
             case UCCI_COMM_QUIT:
                 bQuit = true;
@@ -97,6 +101,11 @@ void Agent::run1() {
 
 void Agent::run_debug() {
     pos.preGen(); // 初始化位行、位列
+#ifdef FILE_DEBUG
+    FILE *fpw = NULL;
+    fpw = fopen("output.txt", "w");
+    fclose(fpw);
+#endif
     while (true) {
         std::cout << "$ ";
         std::cout.flush();
@@ -108,20 +117,16 @@ void Agent::run_debug() {
             init();
             // printVl();
         } else if (opt == "turn") { // my turn
-            auto st = clock();
             auto result = searchMain();
-            std::cout << "time: " << (1.0 * (clock() - st) / CLOCKS_PER_SEC) << std::endl;
-            std::cout << "bestMove " << MOVE_TO_STR(result.second) << std::endl;
-            
-            if (!pos.makeMove(result.second)){
-                std::cout << "error" << std::endl;
-                exit(0);
-            };
+            std::cout << "bestmove " << MOVE_TO_STR(result.second) << std::endl;
+            pos.makeMove(result.second), pos.changeSide();
+            fflush(stdout);
 
-            pos.changeSide();
-            pos.debug();
-            std::cout << "vlBest: " << result.first << std::endl;
-            std::cout << "repStatus: " << pos.repStatus() << std::endl;
+#ifdef FILE_DEBUG
+            fpw = fopen("output.txt", "rt+");
+            this->ucciPrintFile(fpw, result);
+            fclose(fpw);
+ #endif
         } else if (opt == "move") {
             move();
             // printVl();
