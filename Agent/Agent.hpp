@@ -70,7 +70,6 @@ void Agent::run1() {
             case UCCI_COMM_GO:
 
                 result = searchMain();
-                fflush(stdout);
                 if(result.second==0)
                     std::cout<<"nobestmove"<<std::endl;
                 else{
