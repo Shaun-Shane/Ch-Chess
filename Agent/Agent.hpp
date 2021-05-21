@@ -73,9 +73,13 @@ void Agent::run1() {
                 std::cout << "info message "
                           << "asdfasfasd" << std::endl;
                 fflush(stdout);
-                std::cout << "bestmove " << MOVE_TO_STR(result.second)
+                if(result.second==0)
+                    std::cout<<"nobestmove"<<std::endl;
+                else{
+                    std::cout << "bestmove " << MOVE_TO_STR(result.second)
                           << std::endl;
-                pos.makeMove(result.second), pos.changeSide();
+                    pos.makeMove(result.second), pos.changeSide();
+                }
                 fflush(stdout);
 
                 fpw = fopen("output.txt", "rt+");
