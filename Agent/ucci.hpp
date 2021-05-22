@@ -35,10 +35,10 @@ static char coordList[MAX_MOVE_NUM][5];
 
 static bool parsepos(UcciCommStruct &UcciComm, char *strPointer) {
     int i;
-    if (streqvskip(strPointer, "fen ")) {
+    if (strequalskip(strPointer, "fen ")) {
         strcpy(Fen, strPointer);
         UcciComm.fenStr = Fen;
-    } else if (streqv(strPointer, "startpos")) {
+    } else if (strequal(strPointer, "startpos")) {
         UcciComm.fenStr =
             "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
     } else {
@@ -68,7 +68,7 @@ UcciCommEnum bootline(void) {
     while (!std::cin.getline(lineStr, LINE_INPUT_MAX_CHAR)) {
         Sleep(1);
     }
-    if (streqv(lineStr, "ucci")) {
+    if (strequal(lineStr, "ucci")) {
         return UCCI_COMM_UCCI;
     } else {
         return UCCI_COMM_UNKNOWN;
@@ -88,22 +88,22 @@ UcciCommEnum idleline(UcciCommStruct &UcciComm, bool Debug) {
         fflush(stdout);
     }
     if (false) {
-    } else if (streqv(strPointer, "isready")) {
+    } else if (strequal(strPointer, "isready")) {
         return UCCI_COMM_ISREADY;
     }
 
-    else if (streqvskip(strPointer, "position ")) {
+    else if (strequalskip(strPointer, "position ")) {
         return parsepos(UcciComm, strPointer) ? UCCI_COMM_POSITION : UCCI_COMM_UNKNOWN;
     }
 
-    else if (streqvskip(strPointer, "go")) {
-        if (streqvskip(strPointer, " Time ")) {
+    else if (strequalskip(strPointer, "go")) {
+        if (strequalskip(strPointer, " Time ")) {
             UcciComm.Time = str2digit(strPointer, 0, 2000000000);
         }
         return UCCI_COMM_GO;
     }
 
-    else if (streqv(strPointer, "quit")) {
+    else if (strequal(strPointer, "quit")) {
         return UCCI_COMM_QUIT;
     } else {
         return UCCI_COMM_UNKNOWN;
