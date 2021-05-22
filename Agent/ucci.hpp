@@ -33,12 +33,12 @@ constexpr int LINE_INPUT_MAX_CHAR = 8192;
 static char Fen[LINE_INPUT_MAX_CHAR];
 static char coordList[MAX_MOVE_NUM][5];
 
-static bool parsepos(UcciCommStruct &UcciComm, char *strPointer) {
+static bool parsepos(UcciCommStruct &UcciComm, char *strPtr) {
     int i;
-    if (strequalskip(strPointer, "fen ")) {
-        strcpy(Fen, strPointer);
+    if (strequalskip(strPtr, "fen ")) {
+        strcpy(Fen, strPtr);
         UcciComm.fenStr = Fen;
-    } else if (strequal(strPointer, "startpos")) {
+    } else if (strequal(strPtr, "startpos")) {
         UcciComm.fenStr =
             "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w";
     } else {
@@ -46,16 +46,16 @@ static bool parsepos(UcciCommStruct &UcciComm, char *strPointer) {
     }
 
     UcciComm.moveNum = 0;
-    if (strscanskip(strPointer, " moves ")) {
-        *(strPointer - strlen(" moves ")) = '\0';
-        UcciComm.moveNum = std::min((int)(strlen(strPointer) + 1) / 5, MAX_MOVE_NUM);
+    if (strscanskip(strPtr, " moves ")) {
+        *(strPtr - strlen(" moves ")) = '\0';
+        UcciComm.moveNum = std::min((int)(strlen(strPtr) + 1) / 5, MAX_MOVE_NUM);
         for (i = 0; i < UcciComm.moveNum; i++) {
-            coordList[i][0] = *strPointer;
-            coordList[i][1] = *(strPointer + 1);
-            coordList[i][2] = *(strPointer + 2);
-            coordList[i][3] = *(strPointer + 3);
+            coordList[i][0] = *strPtr;
+            coordList[i][1] = *(strPtr + 1);
+            coordList[i][2] = *(strPtr + 2);
+            coordList[i][3] = *(strPtr + 3);
             coordList[i][4] = '\0';
-            strPointer += 5;
+            strPtr += 5;
         }
         UcciComm.movesCoord = coordList;
     }
@@ -77,33 +77,33 @@ UcciCommEnum bootline(void) {
 
 UcciCommEnum idleline(UcciCommStruct &UcciComm, bool Debug) {
     char lineStr[LINE_INPUT_MAX_CHAR];
-    char *strPointer;
+    char *strPtr;
 
     while (!std::cin.getline(lineStr, LINE_INPUT_MAX_CHAR)) {
         Sleep(1);
     }
-    strPointer = lineStr;
+    strPtr = lineStr;
     if (Debug) {
-        printf("info idleline [%s]\n", strPointer);
+        printf("info idleline [%s]\n", strPtr);
         fflush(stdout);
     }
     if (false) {
-    } else if (strequal(strPointer, "isready")) {
+    } else if (strequal(strPtr, "isready")) {
         return UCCI_COMM_ISREADY;
     }
 
-    else if (strequalskip(strPointer, "position ")) {
-        return parsepos(UcciComm, strPointer) ? UCCI_COMM_POSITION : UCCI_COMM_UNKNOWN;
+    else if (strequalskip(strPtr, "position ")) {
+        return parsepos(UcciComm, strPtr) ? UCCI_COMM_POSITION : UCCI_COMM_UNKNOWN;
     }
 
-    else if (strequalskip(strPointer, "go")) {
-        if (strequalskip(strPointer, " Time ")) {
-            UcciComm.Time = str2digit(strPointer, 0, 2000000000);
+    else if (strequalskip(strPtr, "go")) {
+        if (strequalskip(strPtr, " Time ")) {
+            UcciComm.Time = str2digit(strPtr, 0, 2000000000);
         }
         return UCCI_COMM_GO;
     }
 
-    else if (strequal(strPointer, "quit")) {
+    else if (strequal(strPtr, "quit")) {
         return UCCI_COMM_QUIT;
     } else {
         return UCCI_COMM_UNKNOWN;
