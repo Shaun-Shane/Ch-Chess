@@ -37,9 +37,9 @@ struct Agent {
 };
 
 void Agent::buildPos(const UcciCommStruct &UcciComm) {
-    pos.fromFen(UcciComm.szFenStr);
-    for (int i = 0; i < UcciComm.nMoveNum; i++) {
-        std::string mvStr = UcciComm.lpdwMovesCoord[i];
+    pos.fromFen(UcciComm.fenStr);
+    for (int i = 0; i < UcciComm.moveNum; i++) {
+        std::string mvStr = UcciComm.movesCoord[i];
         pos.makeMove(STR_TO_MOVE(mvStr)); // makeMove 会 changeSide
         // 吃子则 moveList 清空
         if (pos.moveNum && pos.moveList[pos.moveNum - 1].cap) pos.moveNum = 0;
@@ -53,7 +53,7 @@ void Agent::run1() {
     }
     int bDebug = true;
     int bQuit = false;
-    pos.fromFen(cszStartFen);
+    pos.fromFen(startFen);
     println("ucciok");
     std::pair<int32_t, int32_t> result;
 #ifdef FILE_DEBUG
