@@ -124,7 +124,7 @@ int Zobrist::getMoveFromLib(int squares[], int sidePlayer,
 
     int32_t tmp = rand() % 10;
 
-    if (tmp < 7) return libVector[0].moveInfo; // 70 %
-    else if (libVector.size() > 1) return libVector[1].moveInfo; // 30%
+    if (tmp < 8) return libVector[0].moveInfo; // 80 %
+    else if (libVector.size() > 1) return libVector[1].moveInfo; // 20%
     return libVector.front().moveInfo;
 }

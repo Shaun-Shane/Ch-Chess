@@ -302,7 +302,8 @@ int32_t Position::isChecked() {
     // 1. 检查对将 通过位列实现
     src = this->pieces[sideTag + KING_FROM];
     dst = this->pieces[oppSideTag + KING_FROM];
-    if (SAME_X(src, dst) && this->getRookCapY(src, dst > src) == dst) return true;
+    if (!dst) return false; // 防止敌方走出非解将走法 而己方不吃掉将军
+    if (this->getRookCapY(src, dst > src) == dst) return true;
     
     // 2. 检查马
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
