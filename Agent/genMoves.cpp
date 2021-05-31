@@ -1,6 +1,7 @@
 #include "Position.h"
 
 void Position::resetMvKillerHash() {
+    this->mvHash[this->distance] = 0;
     this->mvKiller1[this->distance] = 0;
     this->mvKiller2[this->distance] = 0; // 清空置换表 杀手着法
     this->phase[this->distance] = PHASE::HASH; // 从置换表启发开始
@@ -11,7 +12,8 @@ void Position::genMovesInit(int32_t mvHash) { // mvHash 默认为 0
     this->mvHash[this->distance] = mvHash;
 
     if (this->isChecked()) { // 处于被将军状态 禁用杀手启发
-        this->genAllMoves(); // 生成全部着法
+        // this->genAllMoves(); // 生成全部着法
+        // this->phase[this->distance] = PHASE::OTHER;
     } else { // 未被将军 才考虑从杀手着法
         this->mvKiller1[this->distance] = killerTable[this->distance][0];
         this->mvKiller2[this->distance] = killerTable[this->distance][1];

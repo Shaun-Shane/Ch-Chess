@@ -3,7 +3,7 @@
 // #define FILE_DEBUG
 
 // 严格时间限制 不使用时注释掉
-// #define STRICT_LIMIT
+#define STRICT_LIMIT
 
 #ifdef STRICT_LIMIT
 static time_t clockPre; // 上一层搜索开始时间
