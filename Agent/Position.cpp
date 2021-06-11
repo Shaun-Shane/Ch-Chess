@@ -17,6 +17,7 @@ Zobrist zob;
 
 int_fast64_t historyTable[1 << 12] = {0};
 int32_t killerTable[MAX_DISTANCE][2] = {0};
+int32_t miniHash[MINI_HASH_MASK + 1] = {0};
 
 int32_t rookCapX[9][1 << 9][2] = {0};
 int32_t cannonCapX[9][1 << 9][2] = {0};
@@ -26,118 +27,6 @@ int32_t cannonSupperCapY[10][1 << 10][2]= {0};
 
 int32_t bitMaskY[256] = {0}, bitMaskX[256] = {0};
 int32_t knightMvDst[256][12] = {0}, knightMvPin[256][8] = {0};
-
-
-// 用于判断棋子是否在棋盘上
-const int32_t _IN_BOARD[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-const int32_t _IN_FORT[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-const int32_t KAB_LEGAL_SPAN[512] = {
-                         0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0
-};
-
-const int32_t _KNIGHT_PIN[512] = {
-                                0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,-16,  0,-16,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0, -1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0, -1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0, 16,  0, 16,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  0
-};
 
 /* 棋子序号对应的棋子类型
  *
@@ -364,6 +253,7 @@ void Position::clear() {
     memset(this->pieces, 0, sizeof(this->pieces));
     memset(this->stateY, 0, sizeof(this->stateY));
     memset(this->stateX, 0, sizeof(this->stateX));
+    memset(miniHash, 0, sizeof(miniHash));
     this->sidePly = 0; // 默认红方 可通过 changeSide() 修改
     this->vlRed = this->vlBlack = 0;
     this->moveNum = 0, this->distance = 0;
@@ -475,6 +365,10 @@ bool Position::makeMove(int32_t mv) {
         return false;
     }
 
+    if (!miniHash[mvListPtr->key & MINI_HASH_MASK]) {
+        miniHash[mvListPtr->key & MINI_HASH_MASK] = this->moveNum;
+    }
+
     this->changeSide(); // 交换走子方
 
     mvListPtr->chk = this->isChecked(); // 用于判断长将
@@ -494,6 +388,9 @@ void Position::undoMakeMove() {
 
     auto mvListPtr = this->moveList + this->moveNum; // 撤销走子
     this->undoMovePiece(MOVE(DST(mvListPtr->mv), SRC(mvListPtr->mv)), mvListPtr->cap); // 撤销走法
+    if (miniHash[mvListPtr->key & MINI_HASH_MASK] == this->moveNum) {
+        miniHash[mvListPtr->key & MINI_HASH_MASK] = 0;
+    }
 }
 
 // 空着
@@ -504,6 +401,10 @@ void Position::makeNullMove() {
     mvListPtr->key = this->zobrist->getCurKey();
     mvListPtr->chk = 0;
 
+    if (!miniHash[mvListPtr->key & MINI_HASH_MASK]) {
+        miniHash[mvListPtr->key & MINI_HASH_MASK] = this->moveNum;
+    }
+
     this->changeSide(); // 交换走子方
     this->distance++;
     this->moveNum++;
@@ -513,6 +414,11 @@ void Position::undoMakeNullMove() {
     this->distance--;
     this->moveNum--;
     this->changeSide(); // 交换走子方
+
+    auto mvListPtr = this->moveList + this->moveNum;
+    if (miniHash[mvListPtr->key & MINI_HASH_MASK] == this->moveNum) {
+        miniHash[mvListPtr->key & MINI_HASH_MASK] = 0;
+    }
 }
 
 // 当前局面的优势是否足以进行空步搜索
@@ -542,6 +448,9 @@ int32_t Position::drawValue() {
 }
 
 int32_t Position::repStatus(int32_t repCount) {
+    // 该局面之前没有遇到过
+    if (!miniHash[this->zobrist->getCurKey() & MINI_HASH_MASK]) return 0;
+
     bool selfSide = false;
     int32_t perpetualCheck = 0x1ffff;
     int32_t oppPerpetualCheck = 0x1ffff;
@@ -601,34 +510,31 @@ void Position::fromFen(const char* fen) {
     for (int32_t i = 0; i < PIECE_EMPTY; i++) pcBlack[i] = pcRed[i] + 16;
     this->clear();
 
-    const char* lpFen;
+    const char* fenPtr;
 
-    lpFen = fen;
-    if (*lpFen == '\0') {
-        // SetIrrev();
-        return;
-    }
+    fenPtr = fen;
+    if (*fenPtr == '\0') return;
     // 2. 读取棋盘上的棋子
     int r = 9;  //行
     int c = 0;  // 列
 
-    while (*lpFen != ' ') {
-        if (*lpFen == '/') {
+    while (*fenPtr != ' ') {
+        if (*fenPtr == '/') {
             c = 0;
             r--;
             if (r < 0) {
                 break;
             }
-        } else if (*lpFen >= '1' && *lpFen <= '9') {
-            for (int k = 0; k < (*lpFen - '0'); k++) {
+        } else if (*fenPtr >= '1' && *fenPtr <= '9') {
+            for (int k = 0; k < (*fenPtr - '0'); k++) {
                 if (c > 8) {
                     break;
                 }
                 c++;
             }
-        } else if (*lpFen >= 'A' && *lpFen <= 'Z') {
+        } else if (*fenPtr >= 'A' && *fenPtr <= 'Z') {
             if (c <= 8) {
-                int32_t pcType = charToPt(*lpFen);
+                int32_t pcType = charToPt(*fenPtr);
 
                 if (pcType < 7) {
                     int32_t x = c + X_FROM;
@@ -638,9 +544,9 @@ void Position::fromFen(const char* fen) {
                 }
                 c++;
             }
-        } else if (*lpFen >= 'a' && *lpFen <= 'z') {
+        } else if (*fenPtr >= 'a' && *fenPtr <= 'z') {
             if (c <= 8) {
-                int32_t pcType = charToPt(*lpFen + 'A' - 'a');
+                int32_t pcType = charToPt(*fenPtr + 'A' - 'a');
                 if (pcType < 7) {
                     int32_t x = c + X_FROM;
                     int32_t y = r + Y_FROM;
@@ -650,15 +556,12 @@ void Position::fromFen(const char* fen) {
                 c++;
             }
         }
-        lpFen++;
-        if (*lpFen == '\0') {
-            // SetIrrev();
-            return;
-        }
+        fenPtr++;
+        if (*fenPtr == '\0') return;
     }
-    lpFen++;
+    fenPtr++;
     // 3. 确定轮到哪方走
-    if (*lpFen == 'b') {
+    if (*fenPtr == 'b') {
         this->changeSide();
     }
 }

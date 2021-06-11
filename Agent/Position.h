@@ -42,9 +42,10 @@ constexpr int32_t BAN_VALUE = MATE_VALUE - 100; // 长将判负
 constexpr int32_t WIN_VALUE = MATE_VALUE - 200; // 赢棋分值 高于 WIN_VALUE 都是赢棋
 constexpr int32_t DRAW_VALUE = 20; // 和棋时返回分数 取负值
 
-constexpr int32_t MAX_LIST_SIZE = 1024;  // 最大回滚着法数
 constexpr int32_t MAX_GER_NUM = 128; // 最多可能的着法数 不会超过 128
 constexpr int32_t MAX_DISTANCE = 128; // 最多搜索层数
+
+constexpr int32_t MINI_HASH_MASK = (1 << 15) - 1; // mini 置换表大小
 
 // 棋盘范围
 constexpr int32_t Y_FROM = 3;
@@ -369,6 +370,8 @@ extern Position pos;
 extern int_fast64_t historyTable[1 << 12];
 // 杀手着法表
 extern int32_t killerTable[MAX_DISTANCE][2];
+// 重复局面检测迷你置换表
+extern int32_t miniHash[MINI_HASH_MASK + 1];
 
 // 更新历史表
 inline void setHistory(int32_t mv, int32_t depth) {

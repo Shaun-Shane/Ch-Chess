@@ -42,7 +42,10 @@ void Agent::buildPos(const UcciCommStruct &UcciComm) {
         std::string mvStr = UcciComm.movesCoord[i];
         pos.makeMove(STR_TO_MOVE(mvStr)); // makeMove 会 changeSide
         // 吃子则 moveList 清空
-        if (pos.moveNum && pos.moveList[pos.moveNum - 1].cap) pos.moveNum = 0;
+        if (pos.moveNum && pos.moveList[pos.moveNum - 1].cap) {
+            pos.moveNum = 0;
+            memset(miniHash, 0, sizeof(miniHash));
+        }
     }
 }
 
@@ -51,7 +54,7 @@ void Agent::run1() {
     if (bootline() != UCCI_COMM_UCCI) {
         return;
     }
-    int bDebug = true;
+    int bDebug = false;
     int bQuit = false;
     pos.fromFen(startFen);
     println("ucciok");
