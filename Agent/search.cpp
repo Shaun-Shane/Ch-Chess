@@ -78,8 +78,6 @@ std::pair<int32_t, int32_t> searchMain(int32_t timeLimit) {
         }
     }
 
-    pos.moveNum = 0;
-    memset(miniHash, 0, sizeof(miniHash));
     return {bestVl, bestMv};
 }
 
