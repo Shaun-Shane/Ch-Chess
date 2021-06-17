@@ -54,8 +54,7 @@ void Agent::run1() {
     if (bootline() != UCCI_COMM_UCCI) {
         return;
     }
-    int bDebug = false;
-    int bQuit = false;
+    int quit = false;
     pos.fromFen(startFen);
     println("ucciok");
     std::pair<int32_t, int32_t> result;
@@ -64,8 +63,8 @@ void Agent::run1() {
     fpw = fopen("output.txt", "w");
     fclose(fpw);
 #endif
-    while (!bQuit) {
-        switch (idleline(UcciComm, bDebug)) {
+    while (!quit) {
+        switch (idleline(UcciComm)) {
             case UCCI_COMM_ISREADY:
                 println("readyok");
                 break;
@@ -90,7 +89,7 @@ void Agent::run1() {
             #endif
                 break;
             case UCCI_COMM_QUIT:
-                bQuit = true;
+                quit = true;
 
                 break;
             default:

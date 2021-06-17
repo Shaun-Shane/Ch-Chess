@@ -5,59 +5,40 @@
 
 #include <algorithm>
 
-inline char *strcasestr(const char *str1, const char *str2) {
-    return StrStrIA(str1, str2);
-}
-
-inline bool strequal(const char *str1, const char *str2) {
-    return strncasecmp(str1, str2, strlen(str2)) == 0;
-}
-
-inline bool strequalskip(const char *&str1, const char *str2) {
-    if (strncasecmp(str1, str2, strlen(str2)) == 0) {
-        str1 += strlen(str2);
-        return true;
-    } else {
-        return false;
+//转换为小写字母
+inline char lower(char ch) {
+    if (ch >= 'A' && ch <= 'Z') {
+        ch += 32;
     }
+    return ch;
 }
 
-inline bool strequalskip(char *&str1, const char *str2) {
-    if (strncasecmp(str1, str2, strlen(str2)) == 0) {
-        str1 += strlen(str2);
-        return true;
-    } else {
-        return false;
+//判断str2是否出现在str1开头,不区分大小写
+inline bool comparetopstr(char *&str1, const char *str2, int skip) {
+    if (strlen(str1) < strlen(str2)) return 0;
+    for (int i = 0; i < strlen(str2); i++) {
+        if (lower(str1[i]) != lower(str2[i])) return 0;
     }
+    if (skip) str1 += strlen(str2);
+    return 1;
 }
 
-inline bool strscanskip(const char *&str1, const char *str2) {
-    const char *strPtr;
-    strPtr = strcasestr(str1, str2);
-    if (strPtr == NULL) {
-        return false;
-    } else {
-        str1 = strPtr + strlen(str2);
-        return true;
+//查找str2在str1中第一次出现的位置，不区分大小写
+inline char *searchstr(char *&str1, const char *str2) {
+    if (strlen(str1) < strlen(str2)) return nullptr;
+    for (int i = 0; i < strlen(str1) - strlen(str2) + 1; i++) {
+        int flag = 0;
+        for (int j = 0; j < strlen(str2); j++) {
+            if (lower(str1[i + j]) != lower(str2[j])) {
+                flag = 1;
+                break;
+            }
+        }
+        if (flag == 0) {
+            str1 += i;
+            str1 += strlen(str2);
+            return str1;
+        }
     }
-}
-
-inline bool strscanskip(char *&str1, const char *str2) {
-    char *strPtr;
-    strPtr = strcasestr(str1, str2);
-    if (strPtr == NULL) {
-        return false;
-    } else {
-        str1 = strPtr + strlen(str2);
-        return true;
-    }
-}
-
-inline int str2digit(const char *str, int Min, int Max) {
-    int Time;
-    if (sscanf(str, "%d", &Time) > 0) {
-        return std::min(std::max(Time, Min), Max);
-    } else {
-        return Min;
-    }
+    return nullptr;
 }
