@@ -1,1 +1,1 @@
-g++ -o main.exe main.cpp Agent/Position.cpp Agent/genMoves.cpp Agent/evaluate.cpp Agent/search.cpp Agent/Zobrist.cpp Agent/source.cpp -std=c++11 -O4 -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic
+g++ -o main.exe main.cpp Agent/Position.cpp Agent/genMoves.cpp Agent/evaluate.cpp Agent/search.cpp Agent/Zobrist.cpp Agent/source.cpp -std=c++11 -DNDEBUG -O4 -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic

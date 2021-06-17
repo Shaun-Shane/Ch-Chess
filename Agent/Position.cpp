@@ -422,32 +422,32 @@ void Position::undoMakeNullMove() {
 }
 
 // 当前局面的优势是否足以进行空步搜索
-int32_t Position::nullOkay() {
+int32_t Position::nullCan() {
     return (this->sidePly ? this->vlBlack : this->vlRed) > 400;
 }
 // 空步搜索得到的分值是否有效
-int32_t Position::nullSafe() {
+int32_t Position::nullValid() {
     return (this->sidePly ? this->vlBlack : this->vlRed) > 230;
 }
 
-int32_t Position::repValue(int32_t vl) {
-    int32_t tmp = ((vl & 2) ? this->banValue() : 0) + ((vl & 4) ? -this->banValue() : 0);
-    return tmp ? tmp : this->drawValue();
+int32_t Position::repVal(int32_t vl) {
+    int32_t tmp = ((vl & 2) ? this->banVal() : 0) + ((vl & 4) ? -this->banVal() : 0);
+    return tmp ? tmp : this->drawVal();
 }
 // 长将判负分值 与深度有关
-int32_t Position::banValue() {
-    return -BAN_VALUE + this->distance;
+int32_t Position::banVal() {
+    return -BAN_VAL + this->distance;
 }
 // 输棋分值 与深度有关
-int32_t Position::mateValue() {
-    return -MATE_VALUE + this->distance;
+int32_t Position::mateVal() {
+    return -MATE_VAL + this->distance;
 }
 
-int32_t Position::drawValue() {
-    return (this->distance & 1) ? DRAW_VALUE : -DRAW_VALUE;
+int32_t Position::drawVal() {
+    return (this->distance & 1) ? DRAW_VAL : -DRAW_VAL;
 }
 
-int32_t Position::repStatus(int32_t repCount) {
+int32_t Position::repPosition(int32_t repCount) {
     // 该局面之前没有遇到过
     if (!miniHash[this->zobrist->getCurKey() & MINI_HASH_MASK]) return 0;
 

@@ -155,8 +155,10 @@ const int32_t CENTRAL_THREAT[16] = {
 const int32_t BOTTOM_THREAT[16] = {
     0,  0,  0, 40, 30,  0,  0,  0,  0,  0, 30, 40,  0,  0,  0,  0
 };
+// 缺仕的分值
+constexpr int32_t ADVISOR_LEAKAGE = 40; 
 
-int32_t Position::advisorShape() {
+int32_t Position::adviShape() {
     int32_t redPenalty(0), blackPenalty(0);
     int32_t src, dst(pieces[SIDE_TAG(0) + KING_FROM]), i;
     if (pieces[SIDE_TAG(0) + ADVISOR_FROM] && pieces[SIDE_TAG(0) + ADVISOR_TO]) {
@@ -300,7 +302,7 @@ int32_t Position::rookMobility() {
 }
 
 // 不利于马的位置
-const int32_t N_BAD_SQUARES[256] = {
+const int32_t KNIGHT_BAD_SQUARES[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -330,7 +332,7 @@ int32_t Position::knightBlock() {
             dst = knightMvDst[src][j];
             while(dst) {
                 if (!this->squares[knightMvPin[src][j]] &&
-                    !N_BAD_SQUARES[dst] && !(squares[dst] & sideTag) &&
+                    !KNIGHT_BAD_SQUARES[dst] && !(squares[dst] & sideTag) &&
                     !isProtected(side ^ 1, dst)) {
                     if ((++cnt) > 1) break;
                 }
@@ -348,7 +350,7 @@ int32_t Position::evaluate() {
     int32_t vl = vlRed - vlBlack;
 
     // 对特殊棋形评价
-    vl += advisorShape();
+    vl += adviShape();
     // 车的灵活性评价
     vl += rookMobility();
     // 马的阻碍评价
@@ -358,7 +360,7 @@ int32_t Position::evaluate() {
     else vl = vl + 3;
 
     // 与和棋分数区分开来
-    if (vl == drawValue()) vl = vl - 1;
+    if (vl == drawVal()) vl = vl - 1;
 
     return vl;
 }

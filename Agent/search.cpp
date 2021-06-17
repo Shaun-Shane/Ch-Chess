@@ -72,7 +72,7 @@ std::pair<int32_t, int32_t> searchMain(int32_t timeLimit) {
         fclose(fpw);
 #endif
 
-        if (bestVl > WIN_VALUE || bestVl < -WIN_VALUE) {
+        if (bestVl > WIN_VAL || bestVl < -WIN_VAL) {
            // std::cout << "depth: " << depth << std::endl;
             break;
         }
@@ -82,8 +82,7 @@ std::pair<int32_t, int32_t> searchMain(int32_t timeLimit) {
 }
 
 std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
-    srand(time(nullptr));
-    int32_t vlBest(-MATE_VALUE), vl;
+    int32_t vlBest(-MATE_VAL), vl;
     int32_t mvBest(0), mv;
     
     pos.genMovesInit();
@@ -99,17 +98,18 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
         // 判断能否吃掉敌方将军; 注意 makeMove 后 sidePly 变化
         if (!pos.pieces[SIDE_TAG(pos.sidePly) + KING_FROM]) {
             pos.undoMakeMove();
-            return {MATE_VALUE, mv};
+            return {MATE_VAL, mv};
         }
 
-        int32_t nxtDepth = pos.isChecked() ? depth : depth - 1;
+        int32_t nxtDepth = depth - 1;
+        if (pos.moveList[pos.moveNum - 1].chk > 0) nxtDepth++;
         // PVS
-        if (vlBest == -MATE_VALUE) { // 还未找到 PV
-            vl = -searchFull(nxtDepth, -MATE_VALUE, MATE_VALUE, true);
+        if (vlBest == -MATE_VAL) { // 还未找到 PV
+            vl = -searchFull(nxtDepth, -MATE_VAL, MATE_VAL, true);
         } else {
             vl = -searchFull(nxtDepth, -vlBest - 1, -vlBest);
             if (vl > vlBest) {
-                vl = -searchFull(nxtDepth, -MATE_VALUE, -vlBest, true);
+                vl = -searchFull(nxtDepth, -MATE_VAL, -vlBest, true);
             }
         }
 
@@ -117,9 +117,9 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
 
         if (vl > vlBest) {
             vlBest = vl, mvBest = mv;
-            if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) { // 增加走法随机性
-                vlBest += (rand() * 2 - RAND_MAX) % 3;
-                vlBest = (vlBest == pos.drawValue()) ? vlBest - 1 : vlBest;
+            if (vlBest > -WIN_VAL && vlBest < WIN_VAL) { // 增加走法随机性
+                vlBest += 0; // 取消随机...
+                vlBest = (vlBest == pos.drawVal()) ? vlBest - 1 : vlBest;
             }
         }
     }
@@ -130,37 +130,37 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
 int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
 #ifdef STRICT_LIMIT
     if (timeOut || clock() >= clockEnd) // 超时 停止搜索 结果无效
-        return timeOut = true, -MATE_VALUE;
+        return timeOut = true, -MATE_VAL;
 #endif
     if (depth <= 0) return searchQuiescence(alpha, beta);
 
-    int32_t vl = pos.mateValue();
+    int32_t vl = pos.mateVal();
     if (vl >= beta) return vl; // beta 值小于将军分值，不用再搜了
 
     // 检查重复局面
-    vl = pos.repStatus();
-    if (vl) return pos.repValue(vl);
+    vl = pos.repPosition();
+    if (vl) return pos.repVal(vl);
 
     // 置换表裁剪，最佳走法保存在 mvHash[pos.distance]
     vl = hashTable.probeHash(alpha, beta, depth);
-    if (vl > -MATE_VALUE) return vl;
+    if (vl > -MATE_VAL) return vl;
 
     // 达到极限深度返回
     if (pos.distance == DEPTH_LIMIT) return pos.evaluate();
     
     // 空着裁剪
-    if (!noNull && pos.nullOkay() && !(pos.moveList[pos.moveNum - 1].chk > 0)){
+    if (!noNull && pos.nullCan() && !(pos.moveList[pos.moveNum - 1].chk > 0)){
         pos.makeNullMove();
         vl = -searchFull(depth - NULL_DEPTH - 1, -beta, -beta + 1, true);
         pos.undoMakeNullMove();
         if (vl >= beta) { // 存在截断
-            if (pos.nullSafe()) return vl;
-            if (searchFull(depth - NULL_DEPTH, alpha, beta, true) >= beta)
+            if (pos.nullValid()) return vl;
+            else if (searchFull(depth - NULL_DEPTH, alpha, beta, true) >= beta)
                 return vl;
         }
     }
 
-    int32_t vlBest(-MATE_VALUE);
+    int32_t vlBest(-MATE_VAL);
     int32_t mvBest(0), mv, hashFlag(HASH_ALPHA);
 
     pos.genMovesInit(pos.mvHash[pos.distance]);
@@ -173,13 +173,14 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
 #endif
        if (!pos.makeMove(mv)) continue;
 
-        int32_t nxtDepth = pos.moveList[pos.moveNum - 1].chk > 0 ? depth : depth - 1;
+        int32_t nxtDepth = depth - 1;
+        if (pos.moveList[pos.moveNum - 1].chk > 0) nxtDepth++;
         // PVS
-        if (vlBest == -MATE_VALUE) {
+        if (vlBest == -MATE_VAL) {
             vl = -searchFull(nxtDepth, -beta, -alpha);
         } else {
             vl = -searchFull(nxtDepth, -alpha - 1, -alpha);
-            if (vl > alpha && vl < beta)
+            if (vl < beta && vl > alpha)
                 vl = -searchFull(nxtDepth, -beta, -alpha);
         }
 
@@ -188,20 +189,17 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
         if (vl > vlBest) {
             vlBest = vl;
             if (vl >= beta) {
-                mvBest = mv;
-                hashFlag = HASH_BETA;
+                hashFlag = HASH_BETA, mvBest = mv;
                 break;
             }
             if (vl > alpha) {
-                mvBest = mv;
-                hashFlag = HASH_EXACT;
-                alpha = vl;
+                hashFlag = HASH_EXACT, mvBest = mv, alpha = vl;
             }
         }
     }
 
     // 所有走法都走完了，找不到合法着法，输棋
-    if (vlBest == -MATE_VALUE) return pos.mateValue();
+    if (vlBest == -MATE_VAL) return pos.mateVal();
 
     hashTable.recordHash(hashFlag, vlBest, depth, mvBest);
     if (mvBest) setHistory(mvBest, depth), setKillerTable(mvBest);
@@ -212,18 +210,18 @@ int32_t searchFull(int32_t depth, int32_t alpha, int32_t beta, bool noNull) {
 int32_t searchQuiescence(int32_t alpha, int32_t beta) {
 #ifdef STRICT_LIMIT
     if (timeOut || clock() >= clockEnd) // 超时 停止搜索 结果无效
-        return timeOut = true, -MATE_VALUE;
+        return timeOut = true, -MATE_VAL;
 #endif
 
-    int32_t vlBest(-MATE_VALUE), vl, mv;
+    int32_t vlBest(-MATE_VAL), vl, mv;
 
     // 1. beta 值比杀棋分数还小，直接返回杀气分数
-    vl = pos.mateValue();
+    vl = pos.mateVal();
     if (vl >= beta) return vl;
 
     // 检测重复局面...
-    vl = pos.repStatus();
-    if (vl) return pos.repValue(vl);
+    vl = pos.repPosition();
+    if (vl) return pos.repVal(vl);
  
     // 2. 达到极限深度 DEPTH 返回估值
     if (pos.distance == DEPTH_LIMIT) return pos.evaluate();
@@ -252,11 +250,11 @@ int32_t searchQuiescence(int32_t alpha, int32_t beta) {
 
         if (vl > vlBest) {
             if (vl >= beta) return vl;
-            vlBest = vl;
             if (vl > alpha) alpha = vl;
+            vlBest = vl;
         }
     }
-    if (vlBest == -MATE_VALUE) return pos.mateValue();
+    if (vlBest == -MATE_VAL) return pos.mateVal();
     return vlBest;
 }
 
@@ -274,36 +272,36 @@ int32_t HashTable::probeHash(int32_t alpha, int32_t beta, int32_t depth) {
     if (item.flag == HASH_EMPTY ||
         item.zobristLock != pos.zobrist->getCurLock()) {
         pos.mvHash[pos.distance] = 0;
-        return -MATE_VALUE;
+        return -MATE_VAL;
     }
 
     pos.mvHash[pos.distance] = item.mv; // 置换表最佳着法
     bool isMate = false; // 是否为杀棋
 
-    // 如果是杀棋，返回与深度相关的杀棋分数。如果是长将或者和棋，返回-MATE_VALUE。
-    if (item.vl > WIN_VALUE) {
-        if (item.vl <= BAN_VALUE) return -MATE_VALUE;
+    // 如果是杀棋，返回与深度相关的杀棋分数。如果是长将或者和棋，返回-MATE_VAL。
+    if (item.vl > WIN_VAL) {
+        if (item.vl <= BAN_VAL) return -MATE_VAL;
         item.vl -= pos.distance;
         isMate = true;
-    } else if (item.vl < -WIN_VALUE) {
-        if (item.vl >= -BAN_VALUE) return -MATE_VALUE;
+    } else if (item.vl < -WIN_VAL) {
+        if (item.vl >= -BAN_VAL) return -MATE_VAL;
         item.vl += pos.distance;
         isMate = true;
-    } else if (item.vl == pos.drawValue()) {
-        return -MATE_VALUE;
+    } else if (item.vl == pos.drawVal()) {
+        return -MATE_VAL;
     }
 
     // 如果置换表中节点的搜索深度小于当前节点，查询失败
-    if (item.depth < depth && !isMate) return -MATE_VALUE;
+    if (item.depth < depth && !isMate) return -MATE_VAL;
 
     if (item.flag == HASH_BETA) {
         if (item.vl >= beta) return item.vl;
-        else return -MATE_VALUE;
+        else return -MATE_VAL;
     }
 
     if (item.flag == HASH_ALPHA) {
         if (item.vl <= alpha) return item.vl;
-        else return -MATE_VALUE;
+        else return -MATE_VAL;
     }
 
     return item.vl;
@@ -317,13 +315,13 @@ void HashTable::recordHash(int32_t flag, int32_t vl, int32_t depth, int32_t mv) 
     item.flag = flag, item.depth = depth;
 
     // 长将、和棋没有最佳着法，不记录
-    if (vl > WIN_VALUE) { // 杀棋
-        if (!mv && vl <= BAN_VALUE) return; // 长将
+    if (vl > WIN_VAL) { // 杀棋
+        if (!mv && vl <= BAN_VAL) return; // 长将
         item.vl = vl + pos.distance;
-    } else if (vl < -WIN_VALUE) { // 杀棋
-        if (!mv && vl >= -BAN_VALUE) return; // 长将
+    } else if (vl < -WIN_VAL) { // 杀棋
+        if (!mv && vl >= -BAN_VAL) return; // 长将
         item.vl = vl - pos.distance;
-    } else if (!mv && vl == pos.drawValue()) {
+    } else if (!mv && vl == pos.drawVal()) {
         return;
     } else {
         item.vl = vl;

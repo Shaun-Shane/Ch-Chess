@@ -286,7 +286,7 @@ void Position::genNonCapMoves() {
     // 7. 生成 PAWN 走法
     for (i = PAWN_FROM; i <= PAWN_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        dst = SQ_FORWARED(src, this->sidePly);
+        dst = SQ_FORWARD(src, this->sidePly);
         if (IN_BOARD(dst)) ADD_NCAP_MOVE();
         if (!SELF_SIDE(src, this->sidePly)) { // 过河卒
             if (IN_BOARD(dst = src - 1)) ADD_NCAP_MOVE();
@@ -392,7 +392,7 @@ void Position::genCapMoves() {
     // 7. 生成 PAWN 吃子走法
     for (i = PAWN_FROM; i <= PAWN_TO; i++) {
         if (!(src = this->pieces[sideTag + i])) continue;
-        dst = SQ_FORWARED(src, this->sidePly);
+        dst = SQ_FORWARD(src, this->sidePly);
         if (IN_BOARD(dst)) ADD_CAP_MOVE();
         if (!SELF_SIDE(src, this->sidePly)) { // 过河卒
             if (IN_BOARD(dst = src - 1)) ADD_CAP_MOVE();
@@ -420,7 +420,7 @@ int32_t Position::isChecked() {
     // 2. 检查马
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if ((dst = this->pieces[oppSideTag + i])) {
-            pin = KNIGHT_PIN(dst, src); // 注意是从 dst 出发判断
+            pin = K_PIN(dst, src); // 注意是从 dst 出发判断
             if (pin != dst && !this->squares[pin]) return true;
         }
     }
@@ -446,7 +446,7 @@ int32_t Position::isChecked() {
     }
 
     // 5. 检查兵
-    dst = SQ_FORWARED(src, this->sidePly); // 向前走一步
+    dst = SQ_FORWARD(src, this->sidePly); // 向前走一步
     if (PIECE_TYPE(this->squares[dst]) == PIECE_PAWN &&
         !(this->squares[dst] & sideTag))
         return true;
@@ -472,14 +472,14 @@ int32_t Position::isLegalMove(int32_t mv) {
     int32_t pin(0), dirTag(0), rCapDst(0), cCapDist(0);
     switch(PIECE_TYPE(this->squares[src])) { // 判断己方棋子类型
         case PIECE_KING: // 将（帅）
-            return IN_FORT(dst) && KING_SPAN(src, dst);
+            return IN_FORT(dst) && K_SPAN(src, dst);
         case PIECE_ADVISOR: // 仕（仕）
-            return IN_FORT(dst) && ADVISOR_SPAN(src, dst);
+            return IN_FORT(dst) && A_SPAN(src, dst);
         case PIECE_BISHOP: // 象（相）
-            return SELF_SIDE(dst, this->sidePly) && BISHOP_SPAN(src, dst) &&
-                   !this->squares[BISHOP_PIN(src, dst)];
+            return SELF_SIDE(dst, this->sidePly) && B_SPAN(src, dst) &&
+                   !this->squares[B_PIN(src, dst)];
         case PIECE_KNIGHT: // 马
-            pin = KNIGHT_PIN(src, dst);
+            pin = K_PIN(src, dst);
             return pin != src && !this->squares[pin];
         case PIECE_ROOK:
         case PIECE_CANNON: // 车和炮判断                                            一样
@@ -520,7 +520,7 @@ int32_t Position::isLegalMove(int32_t mv) {
             if (!SELF_SIDE(src, this->sidePly) && (dst - src == 1 || src - dst == 1))
                 return true;
             // 否则只能向前走
-            return dst == SQ_FORWARED(src, this->sidePly);
+            return dst == SQ_FORWARD(src, this->sidePly);
         default: return false;
     }
     return false;
@@ -534,19 +534,19 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     if (SELF_SIDE(dst, side)) {
         // 1. 受到己方将保护
         src = this->pieces[sideTag + KING_FROM];
-        if (src && KING_SPAN(src, dst)) return true;
+        if (src && K_SPAN(src, dst)) return true;
 
         // 2. 受到己方士保护
         for (i = ADVISOR_FROM; i <= ADVISOR_TO; i++) {
             src = this->pieces[sideTag + i];
-            if (src && ADVISOR_SPAN(src, dst)) return true;
+            if (src && A_SPAN(src, dst)) return true;
         }
 
         // 3. 受到己方象的保护
         for (i = BISHOP_FROM; i <= BISHOP_TO; i++) {
             src = this->pieces[sideTag + i];
-            if (src && BISHOP_SPAN(src, dst) &&
-                !this->squares[BISHOP_PIN(src, dst)])
+            if (src && B_SPAN(src, dst) &&
+                !this->squares[B_PIN(src, dst)])
                 return true;
         }
     } else {
@@ -562,7 +562,7 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     // 4. 受到己方马的保护
     for (i = KNIGHT_FROM; i <= KNIGHT_TO; i++) {
         if ((src = this->pieces[sideTag + i])) {
-            pin = KNIGHT_PIN(src, dst);
+            pin = K_PIN(src, dst);
             if (pin != src && !this->squares[pin]) return true;
         }
     }
@@ -588,7 +588,7 @@ int32_t Position::isProtected(int32_t side, int32_t dst, int32_t sqExcp) {
     }
 
     // 5. 受到己方兵的保护
-    src = SQ_FORWARED(dst, side ^ 1); // 向后走一步，能否遇到己方兵
+    src = SQ_FORWARD(dst, side ^ 1); // 向后走一步，能否遇到己方兵
     if ((this->squares[src] & sideTag) &&
         PIECE_TYPE(this->squares[src]) == PIECE_PAWN)
         return true;

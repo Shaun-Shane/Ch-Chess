@@ -173,7 +173,7 @@ void Agent::move() {
     }
     // pos.changeSide();
     pos.debug();
-    std::cout << pos.repStatus() << std::endl;
+    std::cout << pos.repPosition() << std::endl;
 }
 
 void Agent::printVl() {
@@ -200,6 +200,6 @@ void Agent::ucciPrintFile(FILE* fpw, std::pair<int32_t, int32_t> result) {
     fprintf(fpw, "  a b c d e f g h i\n");
 
     fprintf(fpw, "vlBest: %d\n", result.first);
-    fprintf(fpw, "repStatus: %d\n", pos.repStatus());
+    fprintf(fpw, "repStatus: %d\n", pos.repPosition());
     fprintf(fpw, "\n");
 }

@@ -9,49 +9,44 @@
 #define POS_DEBUG
 
 // 棋子编号
-constexpr int32_t PIECE_KING = 0;    // 将
-constexpr int32_t PIECE_ADVISOR = 1; // 士
-constexpr int32_t PIECE_BISHOP = 2;  // 象
-constexpr int32_t PIECE_KNIGHT = 3;  // 马
-constexpr int32_t PIECE_ROOK = 4;    // 车
-constexpr int32_t PIECE_CANNON = 5;  // 炮
-constexpr int32_t PIECE_PAWN = 6;    // 卒
-constexpr int32_t PIECE_EMPTY = 7;    // 空
+enum PIECE {
+    PIECE_KING,     // 将
+    PIECE_ADVISOR,  // 士
+    PIECE_BISHOP,   // 象
+    PIECE_KNIGHT,   // 马
+    PIECE_ROOK,     // 车
+    PIECE_CANNON,   // 炮
+    PIECE_PAWN,     // 卒
+    PIECE_EMPTY     // 空
+};
+
+// 启发阶段
+enum PHASE {HASH, KILLER_1, KILLER_2, GEN_CAP, CAP, GEN_NCAP, OTHER};
 
 // 每种棋子的开始序号和结束序号 0 ~ 15
-constexpr int32_t KING_FROM = 0;    // 将
-constexpr int32_t ADVISOR_FROM = 1; // 士
-constexpr int32_t ADVISOR_TO = 2;   // 士
-constexpr int32_t BISHOP_FROM = 3;  // 象
-constexpr int32_t BISHOP_TO = 4;    // 象
-constexpr int32_t KNIGHT_FROM = 5;  // 马
-constexpr int32_t KNIGHT_TO = 6;    // 马
-constexpr int32_t ROOK_FROM = 7;    // 车
-constexpr int32_t ROOK_TO = 8;      // 车
-constexpr int32_t CANNON_FROM = 9;  // 炮
-constexpr int32_t CANNON_TO = 10;   // 炮
-constexpr int32_t PAWN_FROM = 11;   // 卒
-constexpr int32_t PAWN_TO = 15;     // 卒
-
-enum PHASE {HASH, KILLER_1, KILLER_2, GEN_CAP, CAP, GEN_NCAP, OTHER}; // 启发阶段
+constexpr int32_t KING_FROM = 0;                     // 将
+constexpr int32_t ADVISOR_FROM = 1, ADVISOR_TO = 2;  // 士
+constexpr int32_t BISHOP_FROM = 3, BISHOP_TO = 4;    // 象
+constexpr int32_t KNIGHT_FROM = 5, KNIGHT_TO = 6;    // 马
+constexpr int32_t ROOK_FROM = 7, ROOK_TO = 8;        // 车
+constexpr int32_t CANNON_FROM = 9, CANNON_TO = 10;   // 炮
+constexpr int32_t PAWN_FROM = 11, PAWN_TO = 15;      // 卒
 
 constexpr bool DEL_PIECE = true;   // 删除棋子
 
-constexpr int32_t MATE_VALUE = 1e4; // 将军
-constexpr int32_t BAN_VALUE = MATE_VALUE - 100; // 长将判负
-constexpr int32_t WIN_VALUE = MATE_VALUE - 200; // 赢棋分值 高于 WIN_VALUE 都是赢棋
-constexpr int32_t DRAW_VALUE = 20; // 和棋时返回分数 取负值
+constexpr int32_t MATE_VAL = 1e4; // 将军
+constexpr int32_t BAN_VAL = MATE_VAL - 100; // 长将判负
+constexpr int32_t WIN_VAL = MATE_VAL - 200; // 赢棋分值 高于 WIN_VALUE 都是赢棋
+constexpr int32_t DRAW_VAL = 20; // 和棋时返回分数 取负值
 
-constexpr int32_t MAX_GER_NUM = 128; // 最多可能的着法数 不会超过 128
-constexpr int32_t MAX_DISTANCE = 128; // 最多搜索层数
+constexpr int32_t MAX_GEN_NUM = 1 << 7; // 最多可能的着法数 不会超过 128
+constexpr int32_t MAX_DISTANCE = 1 << 7; // 最多搜索层数
 
 constexpr int32_t MINI_HASH_MASK = (1 << 15) - 1; // mini 置换表大小
 
 // 棋盘范围
-constexpr int32_t Y_FROM = 3;
-constexpr int32_t Y_TO = 12;
-constexpr int32_t X_FROM = 3;
-constexpr int32_t X_TO = 11;
+constexpr int32_t Y_FROM = 3, Y_TO = 12;
+constexpr int32_t X_FROM = 3, X_TO = 11;
 
 // 车和炮位于某一列(0-8)，在行状态st下，能吃到的最左、最右子的列数(0-15)
 extern int32_t rookCapX[9][1 << 9][2];
@@ -76,70 +71,55 @@ extern const int32_t KAB_LEGAL_SPAN[512];
 extern const int32_t _KNIGHT_PIN[512];
 
 // 根据 x, y 返回序号 0 ~ 255
-inline int32_t COORD_XY(int32_t x, int32_t y) {
-    return x + (y << 4);
-}
+inline int32_t COORD_XY(int32_t x, int32_t y) { return x + (y << 4); }
 
 // 根据 sq 0 ~ 255 返回行数 y 0 ~ 16
-inline int32_t GET_Y(int32_t sq) {
-    return sq >> 4;
-}
+inline int32_t GET_Y(int32_t sq) { return sq >> 4; }
 
 // 根据 sq 0 ~ 255 返回列数 x 0 ~ 16
-inline int32_t GET_X(int32_t sq) {
-    return sq & 15;
-}
+inline int32_t GET_X(int32_t sq) { return sq & 15; }
 
 // 判断某位置是否在棋盘
-inline bool IN_BOARD(int32_t sq) {
-    return _IN_BOARD[sq];
-}
+inline bool IN_BOARD(int32_t sq) { return _IN_BOARD[sq]; }
 
 // 判断某位置是否在九宫
-inline bool IN_FORT(int32_t sq) {
-    return _IN_FORT[sq];
-}
+inline bool IN_FORT(int32_t sq) { return _IN_FORT[sq]; }
 
 // 校验将（帅）的走法
-inline bool KING_SPAN(int32_t src, int32_t dst) {
+inline bool K_SPAN(int32_t src, int32_t dst) {
     return KAB_LEGAL_SPAN[dst - src + 256] == 1;
 }
 
 // 检验士（仕）的走法
-inline bool ADVISOR_SPAN(int32_t src, int32_t dst) {
+inline bool A_SPAN(int32_t src, int32_t dst) {
     return KAB_LEGAL_SPAN[dst - src + 256] == 2;
 }
 
 // 校验象（相）的走法
-inline bool BISHOP_SPAN(int32_t src, int32_t dst) {
+inline bool B_SPAN(int32_t src, int32_t dst) {
     return KAB_LEGAL_SPAN[dst - src + 256] == 3;
 }
 
 // 象眼位置
-inline int32_t BISHOP_PIN(int32_t src, int32_t dst) {
-    return (src + dst) >> 1;
-}
+inline int32_t B_PIN(int32_t src, int32_t dst) { return (src + dst) >> 1; }
 
 // 如果马的走法合法，则返回相应马脚的位置，否则返回 src。
-inline int32_t KNIGHT_PIN(int32_t src, int32_t dst) {
+inline int32_t K_PIN(int32_t src, int32_t dst) {
     return src + _KNIGHT_PIN[dst - src + 256];
 }
 
-
 // 根据位置 sq 判断是否过河，未过河返回 true；否则返回 false
 inline bool SELF_SIDE(int32_t sq, int32_t side) {
-    return (sq & 0x80) == (side << 7); // 设定红方 sq 小
+    return (sq & 0x80) == (side << 7);  // 设定红方 sq 小
 }
 
 // 返回向前走一步后的位置 sq
-inline int32_t SQ_FORWARED(int32_t sq, int32_t side) {
+inline int32_t SQ_FORWARD(int32_t sq, int32_t side) {
     return sq + 16 - (side << 5);
 }
 
 // 水平翻转后的位置 注意一开始红方左下角的 sq 为 51，黑方右上角 sq 为 203
-inline int32_t SQ_FLIP(int32_t sq) {
-    return 254 - sq;
-}
+inline int32_t SQ_FLIP(int32_t sq) { return 254 - sq; }
 
 // 如果两位置在同一行，返回 true
 inline bool SAME_Y(int32_t src, int32_t dst) {
@@ -152,10 +132,8 @@ inline bool SAME_X(int32_t src, int32_t dst) {
 }
 
 /* 棋子序号对应的棋子类型
- *
- * 棋子序号从0到47，其中0到15不用，16到31表示红子，32到47表示黑子。
+ * 16到31表示红子，32到47表示黑子。
  * 帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
- * 判断棋子是红子 "pc < 32"，黑子 "pc >= 32 或者 & 16"
  */
 extern const int32_t pieceTypes[48];
 // lva 价值
@@ -166,17 +144,10 @@ extern const int32_t mvvValues[48];
 // 获得棋子类型
 inline int32_t PIECE_TYPE(int32_t pc) { return pieceTypes[pc]; }
 
-/* SIDE_TAG()，红方设为 16，黑方设为 32。
- * 用 "SIDE_TAG() + i" 选择棋子的类型， "i" 从 0 到 15 依次是：
- * 帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
- * 例如"i"取"KNIGHT_FROM"到"KNIGHT_TO"，则表示依次检查两个马的位置
- * OPP_SIDE 返回对方颜色 0 为红方 1 为黑方
- */
+/* SIDE_TAG()，红方设为 16，黑方设为 32。*/
 inline int32_t SIDE_TAG(int32_t side) { return 16 + (side << 4); }
 
 inline int32_t OPP_SIDE_TAG(int32_t side) { return 32 - (side << 4); }
-
-inline int32_t OPP_SIDE(int32_t sd) { return sd ^ 1; }
 
 // 着法对象
 struct Moves {
@@ -184,7 +155,7 @@ struct Moves {
     int_fast64_t vl; /*分值*/
 };
 
-struct MoveList {
+struct MoveListNode {
     int32_t mv, cap, chk; // 着法 吃的子 是否将军
     uint32_t key; // zobrist 键值
 };
@@ -216,21 +187,6 @@ extern const int32_t KNIGHT_DELTA[4][2];
  * 见 evaluate.cpp
  */ 
 extern const int32_t SQ_VALUE[PIECE_EMPTY + 1][256];
-
-// 空头炮威胁分值，行号 0-16
-extern const int32_t HOLLOW_THREAT[16];
-
-// 炮镇窝心马的威胁分值，行号 0-16 或一般中炮威胁
-extern const int32_t CENTRAL_THREAT[16];
-
-//沉底炮的威胁分值 列号 0-16
-extern const int32_t BOTTOM_THREAT[16];
-
-// 不利于马的位置
-extern const int32_t N_BAD_SQUARES[256];
-
-// 缺仕的分值
-constexpr int32_t ADVISOR_LEAKAGE = 40; 
 
 // 将FEN串中棋子标识转化为对应棋子类型 pt 需toupper转化为大写
 int32_t charToPt(char c);
@@ -288,12 +244,12 @@ struct Position {
     void undoMakeNullMove();
 
     // 当前局面的优势是否足以进行空步搜索
-    int32_t nullOkay();
+    int32_t nullCan();
     // 空步搜索得到的分值是否有效
-    int32_t nullSafe();
+    int32_t nullValid();
 
     // 仕的棋形评估 包括空头炮、中炮、沉底炮、窝心马 见 evaluate.cpp
-    int32_t advisorShape();
+    int32_t adviShape();
     // 车的灵活性
     int32_t rookMobility();
     // 马受阻碍评价
@@ -302,15 +258,15 @@ struct Position {
     int32_t evaluate();
 
     // 重复局面分数
-    int32_t repValue(int32_t vl);
+    int32_t repVal(int32_t vl);
     // 长将判负分值 与深度有关
-    int32_t banValue();
+    int32_t banVal();
     // 和棋分值
-    int32_t drawValue();
+    int32_t drawVal();
     // 输棋分值 与深度有关
-    int32_t mateValue();
+    int32_t mateVal();
     // 判断重复局面
-    int32_t repStatus(int32_t repCount = 1);
+    int32_t repPosition(int32_t repCount = 1);
     
     // 获得MVV/LVA分值 pcV 为被吃子
     int32_t mvvLva(int32_t pcV, int32_t pcA);
@@ -352,14 +308,14 @@ struct Position {
     int32_t vlRed, vlBlack; // 红方、黑方估值
 
     int32_t moveNum, distance; // 着法数、搜索步数
-    MoveList moveList[MAX_DISTANCE << 2]; // 着法列表
+    MoveListNode moveList[MAX_DISTANCE << 2]; // 着法列表
 
     int32_t genNum[MAX_DISTANCE]; // 某一层的着法数
     int32_t curMvCnt[MAX_DISTANCE]; // 当前层枚举到的走法下标
     int32_t phase[MAX_DISTANCE]; // 启发阶段
     int32_t mvHash[MAX_DISTANCE]; // 置换表着法
     int32_t mvKiller1[MAX_DISTANCE], mvKiller2[MAX_DISTANCE]; // 两个杀手着法
-    Moves mvsGen[MAX_DISTANCE][MAX_GER_NUM]; // 某一层的着法
+    Moves mvsGen[MAX_DISTANCE][MAX_GEN_NUM]; // 某一层的着法
 
     Zobrist* zobrist;
 };
