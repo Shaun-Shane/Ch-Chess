@@ -281,18 +281,16 @@ int32_t HashTable::probeHash(int32_t alpha, int32_t beta, int32_t depth) {
     // 如果是杀棋，返回与深度相关的杀棋分数。如果是长将或者和棋，返回-MATE_VAL。
     if (item.vl > WIN_VAL) {
         if (item.vl <= BAN_VAL) return -MATE_VAL;
-        item.vl -= pos.distance;
-        isMate = true;
+        else item.vl -= pos.distance, isMate = true;
     } else if (item.vl < -WIN_VAL) {
         if (item.vl >= -BAN_VAL) return -MATE_VAL;
-        item.vl += pos.distance;
-        isMate = true;
+        else item.vl += pos.distance, isMate = true;
     } else if (item.vl == pos.drawVal()) {
         return -MATE_VAL;
     }
 
     // 如果置换表中节点的搜索深度小于当前节点，查询失败
-    if (item.depth < depth && !isMate) return -MATE_VAL;
+    if (item.depth < depth && isMate == false) return -MATE_VAL;
 
     if (item.flag == HASH_BETA) {
         if (item.vl >= beta) return item.vl;
@@ -317,15 +315,12 @@ void HashTable::recordHash(int32_t flag, int32_t vl, int32_t depth, int32_t mv) 
     // 长将、和棋没有最佳着法，不记录
     if (vl > WIN_VAL) { // 杀棋
         if (!mv && vl <= BAN_VAL) return; // 长将
-        item.vl = vl + pos.distance;
+        else item.vl = vl + pos.distance;
     } else if (vl < -WIN_VAL) { // 杀棋
         if (!mv && vl >= -BAN_VAL) return; // 长将
-        item.vl = vl - pos.distance;
-    } else if (!mv && vl == pos.drawVal()) {
-        return;
-    } else {
-        item.vl = vl;
-    }
+        else item.vl = vl - pos.distance;
+    } else if (!mv && vl == pos.drawVal()) return;
+    else item.vl = vl;
     item.mv = mv;
     item.zobristLock = pos.zobrist->getCurLock();
 }
