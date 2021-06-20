@@ -1,6 +1,6 @@
 #include "search.h"
 // 不使用 ucci 生成 output.txt 时注释掉 main.cpp 中也有
-// #define FILE_DEBUG
+#define FILE_DEBUG
 
 // 严格时间限制 不使用时注释掉
 #define STRICT_LIMIT
@@ -118,7 +118,9 @@ std::pair<int32_t, int32_t> searchRoot(int32_t depth) {
         if (vl > vlBest) {
             vlBest = vl, mvBest = mv;
             if (vlBest > -WIN_VAL && vlBest < WIN_VAL) { // 增加走法随机性
-                vlBest += 0; // 取消随机...
+                int32_t bias = rand() % 4 - rand() % 4;
+                vlBest += bias;
+                // std::cerr << bias << std::endl;
                 vlBest = (vlBest == pos.drawVal()) ? vlBest - 1 : vlBest;
             }
         }

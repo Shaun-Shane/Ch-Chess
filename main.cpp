@@ -5,7 +5,7 @@
 #define USE_UCCI
 
 // 不使用 ucci 生成 output.txt 时注释掉 search.cpp 中也有
-// #define FILE_DEBUG
+#define FILE_DEBUG
 
 #ifdef VSC_DEBUG
 #define fastcall __attribute__((optimize("-O3")))
@@ -61,7 +61,7 @@ int main() {
     // freopen("debug.out", "w", stdout);
     //ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr);
     static Agent ai;
-
+    srand(time(nullptr));
 #ifndef USE_UCCI
     ai.run_debug();
 #else 
