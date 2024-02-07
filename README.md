@@ -16,8 +16,8 @@ Then load main.exe into a Chinese Chess software like[2].
 
 ## Techniques
 - MinMAX with Alpha-Beta Pruning.
-- BitRanks and BitFiles (Bitmasks for rows and columns).
-- Quiescence Search[3].
+- BitRanks and BitFiles[3].
+- Quiescence Search[4].
 - Zobrist.
 - Transposition Table.
 - Null Move Pruning.
@@ -27,4 +27,6 @@ Then load main.exe into a Chinese Chess software like[2].
 ## Reference
 - [1] [Universal Chinese Chess Protocol](https://www.xqbase.com/protocol/cchess_ucci.htm)
 - [2] [Chess Wizard](https://www.chess-wizard.com/).
-- [3] [Quiescence search](https://en.wikipedia.org/wiki/Quiescence_search#:~:text=Quiescence%20search%20is%20an%20algorithm%20typically%20used%20to,minimax%20game%20trees%20in%20game%20-playing%20computer%20programs.).
+- [3] [BitRanks and Bit Files](https://www.xqbase.com/computer/eleeye_struct.htm).
+- [4] [Quiescence search](https://en.wikipedia.org/wiki/Quiescence_search#:~:text=Quiescence%20search%20is%20an%20algorithm%20typically%20used%20to,minimax%20game%20trees%20in%20game%20-playing%20computer%20programs.).
+
