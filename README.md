@@ -14,7 +14,7 @@ git clone git@github.com:Shaun1280/ChineseChess.git && cd ChineseChess
 g++ -o main.exe main.cpp Agent/Position.cpp Agent/genMoves.cpp Agent/evaluate.cpp Agent/search.cpp Agent/Zobrist.cpp Agent/source.cpp -std=c++11 -DNDEBUG -O4 -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic
 ```
 
-Then load main.exe into a Chinese Chess sofware like [2].
+Then load main.exe into a Chinese Chess software like [2].
 
 ## Reference
 - [1] [Universal Chinese Chess Protocol](https://www.xqbase.com/protocol/cchess_ucci.htm)
