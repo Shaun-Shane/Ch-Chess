@@ -22,6 +22,7 @@ Then load main.exe into a Chinese Chess software like[2].
 - Transposition Table.
 - Null Move Pruning.
 - Iterative Deepening.
+- Cyclic Position Check.
 - Heuristics.
   - History table heuristic
   - Transposition table heuristic
