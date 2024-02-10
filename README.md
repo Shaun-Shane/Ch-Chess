@@ -1,6 +1,6 @@
 # Chinese Chess Agent
 ## Introduction
-This repository contains a Chinese Chess agent based on MiniMAX with Alpha-Beta Pruning, supporting Universal Chinese Chess Protocol (UCCI)[1].
+This repository contains a Chinese Chess agent based on MinMAX with Alpha-Beta Pruning, supporting Universal Chinese Chess Protocol (UCCI)[1].
 
 The agent demonstrates a search capability reaching a depth of 11, coupled with a quiescent search that remains within a depth limit of 64, all accomplished within a 60-second time frame.
 
