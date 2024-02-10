@@ -23,6 +23,10 @@ Then load main.exe into a Chinese Chess software like[2].
 - Null Move Pruning.
 - Iterative Deepening.
 - Heuristics.
+  - History table heuristic
+  - Transposition table heuristic
+  - Killer heuristic
+  - Capture heuristic
 
 ## Reference
 - [1] [Universal Chinese Chess Protocol](https://www.xqbase.com/protocol/cchess_ucci.htm)
